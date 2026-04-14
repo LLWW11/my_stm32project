@@ -19,7 +19,7 @@ extern uint32_t SystemCoreClock; // 引入 STM32 库里的系统主频变量
 #define configIDLE_SHOULD_YIELD                 1
 #define configUSE_TASK_NOTIFICATIONS            1
 #define configTASK_NOTIFICATION_ARRAY_ENTRIES   3
-#define configUSE_MUTEXES                       0
+#define configUSE_MUTEXES                       1
 #define configUSE_RECURSIVE_MUTEXES             0
 #define configUSE_COUNTING_SEMAPHORES           0
 #define configUSE_ALTERNATIVE_API               0 /* Deprecated! */
@@ -37,13 +37,13 @@ extern uint32_t SystemCoreClock; // 引入 STM32 库里的系统主频变量
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION           0
 #define configSUPPORT_DYNAMIC_ALLOCATION          1
-#define configTOTAL_HEAP_SIZE                     1024 * 80
+#define configTOTAL_HEAP_SIZE                     1024 * 30
 #define configAPPLICATION_ALLOCATED_HEAP          0
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP 1
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                0
-#define configUSE_TICK_HOOK                0
+#define configUSE_TICK_HOOK                1
 #define configCHECK_FOR_STACK_OVERFLOW     0
 #define configUSE_MALLOC_FAILED_HOOK       0
 #define configUSE_DAEMON_TASK_STARTUP_HOOK 0

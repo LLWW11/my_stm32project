@@ -1,9 +1,8 @@
 #ifndef __FONT_H
 #define __FONT_H
 
-// !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
-
 #include <stdint.h>
+#include "dbg_config.h"
 typedef struct
 {
     const char *name;     // ºº×Ö
@@ -18,10 +17,16 @@ typedef struct
     const Ch_font_t *chinese;
     // uint16_t size;
 } font_t;
+// !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+#if (ENABLE_LVGL_USE == 0)
 
 extern const font_t font32_youyuan;
 extern const font_t font20_maple_bold;
 extern const font_t font24_maple_bold;
 extern const font_t font80_black;
 extern const font_t font54_songti;
+
+#elif (ENABLE_LVGL_USE == 1)
+#endif
+
 #endif /*__FONT_H*/

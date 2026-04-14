@@ -246,17 +246,17 @@ bool esp_at_sntp_get_time(time_Info_t *date)
 const char *esp_at_http_get(const char *url)
 {
     //    AT+HTTPCLIENT=2,1,"https://api.seniverse.com/v3/weather/now.json?key=SfRic8Wmp-Qh3OeFk&location=WTEMH46Z5N09&language=en&unit=c",,,2
-    //    +HTTPCLIENT:261,{"results":[{"location":{"id":"WTEMH46Z5N09","name":"Hefei","country":"CN","path":"Hefei,Hefei,Anhui,China","timezone":"Asia/Shanghai","timezone_offset":"+08:00"},"now":{"text":"Cloudy","code":"4","temperature":"32"},"last_update":"2025-07-26T16:30:00+08:00"}]}
+    //    +HTTPCLIENT:261,{"results"...]}
 
     //    OK
     // char *txbuf = rxbuf;
-    static char txbuf[256];
+    static char txbuf[1024];
     bool ret;
-    ret = esp_at_write_command("ATE0\r\n", 5000);
+    ret = esp_at_write_command("ATE0\r\n", 8000);
     // bool ret;
     // snprintf(txbuf, sizeof(txbuf), "AT+HTTPCLIENT=2,1,\"%s\",,,2\r\n", url);
     snprintf(txbuf, sizeof(txbuf), "AT+HTTPCLIENT=2,1,\"%s\",,,2\r\n", url);
-    ret = esp_at_write_command(txbuf, 5000);
+    ret = esp_at_write_command(txbuf, 8000);
     // printf("%s\r\n", rxbuf);
     return ret ? rxbuf : NULL;
 }

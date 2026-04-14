@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "FreeRTOS.h"
+#include "semphr.h"
 #include "task.h"
 #include "queue.h"
 #include "app_ui.h"
@@ -9,6 +10,10 @@
 #include "font.h"
 #include "TFT_Img.h"
 #include "dbg_config.h"
+#include "lvgl.h"
+#include "lv_port_disp.h"
+
+#if (ENABLE_LVGL_USE == 0)
 typedef enum
 {
     UI_ACTION_SET_WINDOW,
@@ -147,3 +152,57 @@ void ui_draw_image(uint16_t x, uint16_t y, const img_t *image)
 
     xQueueSend(ui_queue, &ui_msg, portMAX_DELAY);
 }
+#endif
+
+#if (ENABLE_LVGL_USE == 1)
+#include "key.h"
+
+SemaphoreHandle_t xGuiMutex = NULL;
+void UI_init(void)
+{
+    xGuiMutex = xSemaphoreCreateMutex();
+    configASSERT(xGuiMutex);
+}
+
+lv_indev_t *keypad_indev = NULL;
+
+static void keypad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data)
+{
+    static uint32_t last_key = 0;
+
+    if (KeyList[0].PressFlag) // Key0 -> 退出
+    {
+        KeyList[0].PressFlag = 0;
+        last_key = LV_KEY_ESC;
+        data->state = LV_INDEV_STATE_PR;
+    }
+    else if (KeyList[1].PressFlag) // Key1 -> 进入
+    {
+        KeyList[1].PressFlag = 0;
+        last_key = LV_KEY_ENTER;
+        data->state = LV_INDEV_STATE_PR;
+    }
+    else if (KeyList[2].PressFlag) // Key2 -> Next
+    {
+        KeyList[2].PressFlag = 0;
+        last_key = LV_KEY_NEXT;
+        data->state = LV_INDEV_STATE_PR;
+    }
+    else
+    {
+        data->state = LV_INDEV_STATE_REL;
+    }
+
+    data->key = last_key;
+}
+
+void app_keypad_init(void)
+{
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_KEYPAD;
+    indev_drv.read_cb = keypad_read;
+    keypad_indev = lv_indev_drv_register(&indev_drv);
+}
+
+#endif

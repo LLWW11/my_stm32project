@@ -8,6 +8,12 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "dbg_config.h"
+
+#if (ENABLE_LVGL_USE)
+#include "lv_port_disp.h"
+lv_disp_drv_t *g_disp_drv = NULL;
+#endif
 /*
 硬件连接：
 SDA：PA7   	MOSI数据线
@@ -35,9 +41,9 @@ void TFT_SEND_CMD(uint8_t o_command)
 {
     SPI_CS_0;
     SPI_DC_0;
-    // SPI_Cmd(SPI1, DISABLE); 
+    // SPI_Cmd(SPI1, DISABLE);
     SPI_DataSizeConfig(SPI1, SPI_DataSize_8b);
-    // SPI_Cmd(SPI1, ENABLE);  
+    // SPI_Cmd(SPI1, ENABLE);
     SPI1_SendByte(o_command);
     SPI_CS_1; // 每次发送完数据之后片选拉高
 }
@@ -45,9 +51,9 @@ void TFT_SEND_DATA(uint8_t o_data)
 {
     SPI_CS_0;
     SPI_DC_1;
-    // SPI_Cmd(SPI1, DISABLE); 
+    // SPI_Cmd(SPI1, DISABLE);
     SPI_DataSizeConfig(SPI1, SPI_DataSize_8b);
-    // SPI_Cmd(SPI1, ENABLE);  
+    // SPI_Cmd(SPI1, ENABLE);
     SPI1_SendByte(o_data);
     SPI_CS_1;
 }
@@ -89,8 +95,7 @@ void st7789_write_gram_DMA(uint8_t data[], uint32_t length, bool singleColor)
             data += chunk_size * 2;
         length -= chunk_size;
     } while (length > 0);
-    while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) != RESET)
-        ;
+    // while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) != RESET);
     SPI_CS_1; //
 }
 void TFT_clear(void)
@@ -624,6 +629,27 @@ void DMA2_Stream5_IRQHandler(void)
         DMA_ClearITPendingBit(DMA2_Stream5, DMA_IT_TCIF5);
         BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
         xSemaphoreGiveFromISR(write_gram_Semphore, &pxHigherPriorityTaskWoken);
+#if (ENABLE_LVGL_USE == 1)
+        extern lv_disp_drv_t *g_disp_drv;
+        if (g_disp_drv != NULL)
+            lv_disp_flush_ready(g_disp_drv);
+#endif
         portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
     }
+}
+
+void TFT_Color_Buffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *color_p)
+{
+
+    uint8_t colum_addr_set[] = {x1 >> 8, x1 & 0xff, x2 >> 8, x2 & 0xff};
+    ST7789_write_reg_MultiData(0x2a, colum_addr_set, 4);
+
+    uint8_t row_addr_set[] = {y1 >> 8, y1 & 0xff, y2 >> 8, y2 & 0xff};
+    ST7789_write_reg_MultiData(0x2b, row_addr_set, 4);
+
+    TFT_SEND_CMD(0x2C);
+
+    uint32_t size = (x2 - x1 + 1) * (y2 - y1 + 1) * 2;
+
+    st7789_write_gram_DMA((uint8_t *)color_p, size, false);
 }

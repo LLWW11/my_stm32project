@@ -38,6 +38,7 @@ virtualFolder:
             - path: ../app/page/page.h
             - path: ../app/page/welcome_page.c
             - path: ../app/page/wifi_page.c
+            - path: ../app/page/sub_page.c
           folders: []
         - name: img
           files:
@@ -205,6 +206,333 @@ virtualFolder:
                 - path: ../third_lib/FreeRTOS/portable/ReadMe.url
                 - path: ../third_lib/FreeRTOS/portable/FreeRTOSConfig.h
               folders: []
+        - name: lvgl
+          files:
+            - path: ../third_lib/lvgl/lv_conf.h
+            - path: ../third_lib/lvgl/lvgl.h
+            - path: ../third_lib/lvgl/lv_port_disp.c
+            - path: ../third_lib/lvgl/lv_port_disp.h
+          folders:
+            - name: src
+              files:
+                - path: ../third_lib/lvgl/src/lv_api_map.h
+                - path: ../third_lib/lvgl/src/lv_conf_internal.h
+                - path: ../third_lib/lvgl/src/lv_conf_kconfig.h
+                - path: ../third_lib/lvgl/src/lvgl.h
+              folders:
+                - name: core
+                  files:
+                    - path: ../third_lib/lvgl/src/core/lv_disp.c
+                    - path: ../third_lib/lvgl/src/core/lv_event.c
+                    - path: ../third_lib/lvgl/src/core/lv_group.c
+                    - path: ../third_lib/lvgl/src/core/lv_indev.c
+                    - path: ../third_lib/lvgl/src/core/lv_indev_scroll.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj_class.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj_draw.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj_pos.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj_scroll.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj_style.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj_style_gen.c
+                    - path: ../third_lib/lvgl/src/core/lv_obj_tree.c
+                    - path: ../third_lib/lvgl/src/core/lv_refr.c
+                    - path: ../third_lib/lvgl/src/core/lv_theme.c
+                  folders: []
+                - name: draw
+                  files:
+                    - path: ../third_lib/lvgl/src/draw/lv_draw.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_arc.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_arc.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_img.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_img.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_label.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_label.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_layer.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_layer.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_line.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_line.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_mask.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_mask.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_rect.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_rect.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_transform.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_transform.h
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_triangle.c
+                    - path: ../third_lib/lvgl/src/draw/lv_draw_triangle.h
+                    - path: ../third_lib/lvgl/src/draw/lv_img_buf.c
+                    - path: ../third_lib/lvgl/src/draw/lv_img_buf.h
+                    - path: ../third_lib/lvgl/src/draw/lv_img_cache.c
+                    - path: ../third_lib/lvgl/src/draw/lv_img_cache.h
+                    - path: ../third_lib/lvgl/src/draw/lv_img_decoder.c
+                    - path: ../third_lib/lvgl/src/draw/lv_img_decoder.h
+                  folders:
+                    - name: sw
+                      files:
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw.h
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_arc.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_blend.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_blend.h
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_dither.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_dither.h
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_gradient.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_gradient.h
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_img.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_layer.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_letter.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_line.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_polygon.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_rect.c
+                        - path: ../third_lib/lvgl/src/draw/sw/lv_draw_sw_transform.c
+                      folders: []
+                - name: font
+                  files:
+                    - path: ../third_lib/lvgl/src/font/lv_font.c
+                    - path: ../third_lib/lvgl/src/font/lv_font.h
+                    - path: ../third_lib/lvgl/src/font/lv_font_dejavu_16_persian_hebrew.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_fmt_txt.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_fmt_txt.h
+                    - path: ../third_lib/lvgl/src/font/lv_font_loader.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_loader.h
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_8.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_10.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_12.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_12_subpx.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_14.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_16.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_18.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_20.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_22.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_24.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_26.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_28.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_28_compressed.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_30.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_32.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_34.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_36.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_38.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_40.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_42.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_44.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_46.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_48.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_simsun_16_cjk.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_unscii_8.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_unscii_16.c
+                    - path: ../third_lib/lvgl/src/font/lv_symbol_def.h
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_80_partial.c
+                    - path: ../third_lib/lvgl/src/font/my_font_24.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_54_partial.c
+                    - path: ../third_lib/lvgl/src/font/lv_font_montserrat_52_partial.c
+                  folders: []
+                - name: hal
+                  files:
+                    - path: ../third_lib/lvgl/src/hal/lv_hal.h
+                    - path: ../third_lib/lvgl/src/hal/lv_hal_disp.c
+                    - path: ../third_lib/lvgl/src/hal/lv_hal_disp.h
+                    - path: ../third_lib/lvgl/src/hal/lv_hal_indev.c
+                    - path: ../third_lib/lvgl/src/hal/lv_hal_indev.h
+                    - path: ../third_lib/lvgl/src/hal/lv_hal_tick.c
+                    - path: ../third_lib/lvgl/src/hal/lv_hal_tick.h
+                  folders: []
+                - name: misc
+                  files:
+                    - path: ../third_lib/lvgl/src/widgets/lv_arc.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_arc.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_bar.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_bar.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_btn.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_btn.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_btnmatrix.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_btnmatrix.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_canvas.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_canvas.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_checkbox.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_checkbox.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_dropdown.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_dropdown.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_img.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_img.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_label.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_label.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_line.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_line.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_objx_templ.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_objx_templ.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_roller.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_roller.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_slider.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_slider.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_switch.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_switch.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_table.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_table.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_textarea.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_textarea.h
+                    - path: ../third_lib/lvgl/src/misc/lv_anim.c
+                    - path: ../third_lib/lvgl/src/misc/lv_anim.h
+                    - path: ../third_lib/lvgl/src/misc/lv_anim_timeline.c
+                    - path: ../third_lib/lvgl/src/misc/lv_anim_timeline.h
+                    - path: ../third_lib/lvgl/src/misc/lv_area.c
+                    - path: ../third_lib/lvgl/src/misc/lv_area.h
+                    - path: ../third_lib/lvgl/src/misc/lv_assert.h
+                    - path: ../third_lib/lvgl/src/misc/lv_async.c
+                    - path: ../third_lib/lvgl/src/misc/lv_async.h
+                    - path: ../third_lib/lvgl/src/misc/lv_bidi.c
+                    - path: ../third_lib/lvgl/src/misc/lv_bidi.h
+                    - path: ../third_lib/lvgl/src/misc/lv_color.c
+                    - path: ../third_lib/lvgl/src/misc/lv_color.h
+                    - path: ../third_lib/lvgl/src/misc/lv_fs.c
+                    - path: ../third_lib/lvgl/src/misc/lv_fs.h
+                    - path: ../third_lib/lvgl/src/misc/lv_gc.c
+                    - path: ../third_lib/lvgl/src/misc/lv_gc.h
+                    - path: ../third_lib/lvgl/src/misc/lv_ll.c
+                    - path: ../third_lib/lvgl/src/misc/lv_ll.h
+                    - path: ../third_lib/lvgl/src/misc/lv_log.c
+                    - path: ../third_lib/lvgl/src/misc/lv_log.h
+                    - path: ../third_lib/lvgl/src/misc/lv_lru.c
+                    - path: ../third_lib/lvgl/src/misc/lv_lru.h
+                    - path: ../third_lib/lvgl/src/misc/lv_math.c
+                    - path: ../third_lib/lvgl/src/misc/lv_math.h
+                    - path: ../third_lib/lvgl/src/misc/lv_mem.c
+                    - path: ../third_lib/lvgl/src/misc/lv_mem.h
+                    - path: ../third_lib/lvgl/src/misc/lv_printf.c
+                    - path: ../third_lib/lvgl/src/misc/lv_printf.h
+                    - path: ../third_lib/lvgl/src/misc/lv_style.c
+                    - path: ../third_lib/lvgl/src/misc/lv_style.h
+                    - path: ../third_lib/lvgl/src/misc/lv_style_gen.c
+                    - path: ../third_lib/lvgl/src/misc/lv_style_gen.h
+                    - path: ../third_lib/lvgl/src/misc/lv_templ.c
+                    - path: ../third_lib/lvgl/src/misc/lv_templ.h
+                    - path: ../third_lib/lvgl/src/misc/lv_timer.c
+                    - path: ../third_lib/lvgl/src/misc/lv_timer.h
+                    - path: ../third_lib/lvgl/src/misc/lv_tlsf.c
+                    - path: ../third_lib/lvgl/src/misc/lv_tlsf.h
+                    - path: ../third_lib/lvgl/src/misc/lv_txt.c
+                    - path: ../third_lib/lvgl/src/misc/lv_txt.h
+                    - path: ../third_lib/lvgl/src/misc/lv_txt_ap.c
+                    - path: ../third_lib/lvgl/src/misc/lv_txt_ap.h
+                    - path: ../third_lib/lvgl/src/misc/lv_types.h
+                    - path: ../third_lib/lvgl/src/misc/lv_utils.c
+                    - path: ../third_lib/lvgl/src/misc/lv_utils.h
+                  folders: []
+                - name: widgets
+                  files:
+                    - path: ../third_lib/lvgl/src/widgets/lv_arc.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_arc.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_bar.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_bar.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_btn.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_btn.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_btnmatrix.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_btnmatrix.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_canvas.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_canvas.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_checkbox.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_checkbox.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_dropdown.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_dropdown.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_img.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_img.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_label.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_label.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_line.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_line.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_objx_templ.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_objx_templ.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_roller.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_roller.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_slider.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_slider.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_switch.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_switch.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_table.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_table.h
+                    - path: ../third_lib/lvgl/src/widgets/lv_textarea.c
+                    - path: ../third_lib/lvgl/src/widgets/lv_textarea.h
+                  folders: []
+                - name: extra
+                  files:
+                    - path: ../third_lib/lvgl/src/extra/lv_extra.c
+                    - path: ../third_lib/lvgl/src/extra/lv_extra.h
+                  folders:
+                    - name: themes
+                      files:
+                        - path: ../third_lib/lvgl/src/extra/themes/lv_themes.h
+                      folders:
+                        - name: dafault
+                          files:
+                            - path: ../third_lib/lvgl/src/extra/themes/default/lv_theme_default.c
+                            - path: ../third_lib/lvgl/src/extra/themes/default/lv_theme_default.h
+                          folders: []
+                        - name: basic
+                          files:
+                            - path: ../third_lib/lvgl/src/extra/themes/basic/lv_theme_basic.c
+                            - path: ../third_lib/lvgl/src/extra/themes/basic/lv_theme_basic.h
+                          folders: []
+                        - name: mono
+                          files:
+                            - path: ../third_lib/lvgl/src/extra/themes/mono/lv_theme_mono.c
+                            - path: ../third_lib/lvgl/src/extra/themes/mono/lv_theme_mono.h
+                          folders: []
+                    - name: layouts
+                      files:
+                        - path: ../third_lib/lvgl/src/extra/layouts/lv_layouts.h
+                      folders:
+                        - name: flex
+                          files:
+                            - path: ../third_lib/lvgl/src/extra/layouts/flex/lv_flex.c
+                            - path: ../third_lib/lvgl/src/extra/layouts/flex/lv_flex.h
+                          folders: []
+                        - name: gird
+                          files:
+                            - path: ../third_lib/lvgl/src/extra/layouts/grid/lv_grid.c
+                            - path: ../third_lib/lvgl/src/extra/layouts/grid/lv_grid.h
+                          folders: []
+                    - name: widgets
+                      files:
+                        - path: ../third_lib/lvgl/src/extra/widgets/animimg/lv_animimg.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/animimg/lv_animimg.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/calendar/lv_calendar_header_dropdown.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/calendar/lv_calendar_header_dropdown.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/calendar/lv_calendar.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/calendar/lv_calendar.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/calendar/lv_calendar_header_arrow.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/calendar/lv_calendar_header_arrow.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/chart/lv_chart.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/chart/lv_chart.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/colorwheel/lv_colorwheel.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/colorwheel/lv_colorwheel.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/imgbtn/lv_imgbtn.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/imgbtn/lv_imgbtn.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/keyboard/lv_keyboard.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/keyboard/lv_keyboard.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/led/lv_led.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/led/lv_led.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/list/lv_list.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/list/lv_list.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/menu/lv_menu.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/menu/lv_menu.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/meter/lv_meter.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/meter/lv_meter.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/msgbox/lv_msgbox.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/msgbox/lv_msgbox.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/span/lv_span.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/span/lv_span.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/spinbox/lv_spinbox.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/spinbox/lv_spinbox.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/spinner/lv_spinner.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/spinner/lv_spinner.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/tabview/lv_tabview.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/tabview/lv_tabview.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/tileview/lv_tileview.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/tileview/lv_tileview.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/win/lv_win.c
+                        - path: ../third_lib/lvgl/src/extra/widgets/win/lv_win.h
+                        - path: ../third_lib/lvgl/src/extra/widgets/lv_widgets.h
+                      folders: []
 dependenceList: []
 outDir: build
 miscInfo:
@@ -216,6 +544,7 @@ targets:
         - STM32F40_41xxx
         - USE_STDPERIPH_DRIVER
         - HSE_VALUE=8000000
+        - LV_CONF_INCLUDE_SIMPLE
       incList:
         - .cmsis/include
         - RTE/_f407
@@ -237,8 +566,15 @@ targets:
         - ../third_lib/FreeRTOS/include
         - ../third_lib/FreeRTOS/portable
         - ../my_driver/dma
-      libList: []
-    excludeList: []
+        - ../third_lib/lvgl
+        - ../third_lib
+        - ../third_lib/lvgl/src
+      libList:
+        - ../third_lib/lvgl
+    excludeList:
+      - <virtual_root>/third_lib/lvgl/src/font/lv_hal_disp.c
+      - <virtual_root>/third_lib/lvgl/src/font/lv_hal_indev.c
+      - <virtual_root>/third_lib/lvgl/src/font/lv_hal_tick.c
     settings:
       debugger: cortex-debug
     toolchain: AC5
