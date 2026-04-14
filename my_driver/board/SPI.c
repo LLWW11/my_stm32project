@@ -43,7 +43,7 @@ void SPI1_Init(void)
     // SPI初始化
     SPI_InitTypeDef SPI1_InitStruct;
     SPI_StructInit(&SPI1_InitStruct);
-    SPI1_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+    SPI1_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
     SPI1_InitStruct.SPI_CPHA = SPI_CPHA_1Edge; // 第一个上升沿采样
     SPI1_InitStruct.SPI_CPOL = SPI_CPOL_Low;   // 空闲时SPI时钟为低电平
     SPI1_InitStruct.SPI_DataSize = SPI_DataSize_8b;
