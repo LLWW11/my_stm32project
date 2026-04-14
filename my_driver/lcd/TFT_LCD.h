@@ -21,10 +21,6 @@
 #define TFT_COLUMN_NUMBER 240
 #define TFT_LINE_NUMBER   320
 
-void TFT_SEND_CMD(uint8_t o_command);
-void TFT_SEND_DATA(uint8_t o_data);
-void TFT_clear(void);
-void TFT_full(uint16_t color);
 void TFT_init(void);
 void TFT_SetWindow(uint16_t sx,
                    uint16_t sy,
@@ -32,7 +28,6 @@ void TFT_SetWindow(uint16_t sx,
                    uint16_t ey,
                    uint16_t color);
 
-void TFT_LCD_show_img(uint16_t x, uint16_t y, const img_t *img);
 // void TFT_LCD_Write_single_ASCII(uint16_t x, // 起始x坐标
 //                                 uint16_t y, // 起始Y坐标
 //                                 char ch,
@@ -70,4 +65,5 @@ void st7789_write_single_ascii(uint16_t x, // 起始x坐标
                                const font_t *font,
                                uint16_t color_bg,
                                uint16_t color_ch);
+void TFT_LCD_show_img(uint16_t x, uint16_t y, const img_t *img);
 #endif /*__TFT_LCD_H*/

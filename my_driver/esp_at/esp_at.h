@@ -1,8 +1,12 @@
 #ifndef __ESP_AT_H
 #define __ESP_AT_H
-#include <stdbool.h>
 
+#include <stdbool.h>
+#include <stdint.h>
 volatile extern uint16_t esp_timeout;
+// 1.0是裸机版本，2.0是FreeRTOS的版本
+#define version 2
+
 typedef struct
 {
     const char ssid[20];
@@ -24,19 +28,20 @@ typedef struct
 typedef struct
 {
     char year[5];
-    char month[3];
-    int day;
-    int hour;
-    int min;
-    int sec;
+    char month[4];
+    uint8_t day;
+    uint8_t hour;
+    uint8_t min;
+    uint8_t sec;
     char weekday[5];
-     //   +CIPSNTPTIME:Tue Mar 10 11:10:05 2026
+    //   +CIPSNTPTIME:Tue Mar 10 11:10:05 2026
 } time_Info_t;
 
+#if (version == 1)
 void usart2_Init(void); // usart2和esp32通信
 void usart2_sendByte(uint8_t data);
 void usart2_sendString(uint8_t *str);
-bool usart2_receiveByte_NonBlock(uint8_t *rx_data);
+// bool usart2_receiveByte_NonBlock(uint8_t *rx_data);
 uint16_t usart2_receiveString(char *buffer, uint16_t bufferSize, uint32_t timeout);
 
 bool esp_at_WiFi_Init(void);
@@ -50,4 +55,22 @@ bool parse_WeatherSenstive(const char *response, weather_Info_t *info);
 bool parse_WeatherAPI(const char *response, weather_Info_t *info);
 bool esp_get_wifi_info(esp_wifi_info_t *info);
 bool esp_sntp_get(time_Info_t *timeinfo);
+
+#endif
+
+#if (version ==2)
+bool esp_at_init(void);
+bool esp_at_WiFi_Init(void);
+bool esp_at_connect_wifi(const char *ssid, const char *pwd, const char *mac);
+bool esp_at_get_wifi_info(esp_wifi_info_t *info);
+bool wifi_is_connected(void);
+bool esp_at_sntp_Init(void);
+bool esp_at_sntp_get_time(time_Info_t *date);
+const char *esp_at_http_get(const char *url);
+
+#endif
+
+bool parse_WeatherSenstive(const char *response, weather_Info_t *info);
+bool parse_WeatherAPI(const char *response, weather_Info_t *info);
+
 #endif /*__ESP_AT_H*/
