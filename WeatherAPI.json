@@ -1,0 +1,51 @@
+{
+    "location": {
+        "name": "Fuzhou",
+        "region": "Fujian",
+        "country": "China",
+        "lat": 26.061,
+        "lon": 119.306,
+        "tz_id": "Asia/Shanghai",
+        "localtime_epoch": 1773108295,
+        "localtime": "2026-03-10 10:04"
+    },
+    "current": {
+        "last_updated_epoch": 1773108000,
+        "last_updated": "2026-03-10 10:00",
+        "temp_c": 12.3,
+        "temp_f": 54.1,
+        "is_day": 1,
+        "condition": {
+            "text": "Partly cloudy",
+            "icon": "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code": 1003
+        },
+        "wind_mph": 4.5,
+        "wind_kph": 7.2,
+        "wind_degree": 56,
+        "wind_dir": "NE",
+        "pressure_mb": 1028.0,
+        "pressure_in": 30.36,
+        "precip_mm": 0.01,
+        "precip_in": 0.0,
+        "humidity": 62,
+        "cloud": 75,
+        "feelslike_c": 11.9,
+        "feelslike_f": 53.3,
+        "windchill_c": 10.3,
+        "windchill_f": 50.6,
+        "heatindex_c": 11.0,
+        "heatindex_f": 51.8,
+        "dewpoint_c": 6.2,
+        "dewpoint_f": 43.1,
+        "vis_km": 10.0,
+        "vis_miles": 6.0,
+        "uv": 2.6,
+        "gust_mph": 5.1,
+        "gust_kph": 8.3,
+        "short_rad": 0.0,
+        "diff_rad": 0.0,
+        "dni": 0.0,
+        "gti": 0.0
+    }
+}

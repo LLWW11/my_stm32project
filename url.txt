@@ -1,0 +1,7 @@
+https://api.seniverse.com/v3/weather/now.json?key=[自己去账户上找一下API key]&location=fujianfuzhou&language=en&unit=c
+
+http://api.weatherapi.com/v1/current.json?key=[自己去账户上找一下API key]&q=auto:ip&lang=zh_cn
+
+官网：
+https://www.seniverse.com/
+https://www.weatherapi.com/

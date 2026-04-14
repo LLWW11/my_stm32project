@@ -1,0 +1,20 @@
+{
+    "results": [
+        {
+            "location": {
+                "id": "WSSU6EXX52RE",
+                "name": "Fuzhou",
+                "country": "CN",
+                "path": "Fuzhou,Fuzhou,Fujian,China",
+                "timezone": "Asia/Shanghai",
+                "timezone_offset": "+08:00"
+            },
+            "now": {
+                "text": "Cloudy",
+                "code": "4",
+                "temperature": "14"
+            },
+            "last_update": "2026-03-09T16:10:19+08:00"
+        }
+    ]
+}

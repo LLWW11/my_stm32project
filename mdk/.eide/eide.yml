@@ -1,0 +1,370 @@
+version: "4.1"
+name: weatherClock
+type: ARM
+deviceName: null
+packDir: null
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: app
+      files:
+        - path: ../app/app.h
+        - path: ../app/board.c
+        - path: ../app/board.h
+        - path: ../app/delay.c
+        - path: ../app/delay.h
+        - path: ../app/main.c
+        - path: ../app/mainloop.c
+        - path: ../app/wifi.c
+      folders:
+        - name: font
+          files:
+            - path: ../app/font/font.h
+            - path: ../app/font/font16_maple.c
+            - path: ../app/font/font20_maple_bold.c
+            - path: ../app/font/font24_maple_bold.c
+            - path: ../app/font/font32youyuan.c
+            - path: ../app/font/font54songti.c
+            - path: ../app/font/font80_black.c
+          folders: []
+        - name: page
+          files:
+            - path: ../app/page/error_page.c
+            - path: ../app/page/main_page.c
+            - path: ../app/page/page.h
+            - path: ../app/page/welcome_page.c
+            - path: ../app/page/wifi_page.c
+          folders: []
+        - name: img
+          files:
+            - path: ../app/img/icon_wenduji.c
+            - path: ../app/img/icon_wifi.c
+            - path: ../app/img/img_error.c
+            - path: ../app/img/img_laoba.c
+            - path: ../app/img/img_wifi.c
+            - path: ../app/img/TFT_Img.h
+          folders:
+            - name: weather
+              files:
+                - path: ../app/img/weather/icon0.c
+                - path: ../app/img/weather/icon1.c
+                - path: ../app/img/weather/icon5.c
+                - path: ../app/img/weather/icon6.c
+                - path: ../app/img/weather/icon11.c
+                - path: ../app/img/weather/icon13.c
+                - path: ../app/img/weather/icon19.c
+                - path: ../app/img/weather/icon20.c
+                - path: ../app/img/weather/icon23.c
+                - path: ../app/img/weather/icon31.c
+                - path: ../app/img/weather/iocn9.c
+                - path: ../app/img/weather/iocn99.c
+                - path: ../app/img/weather/icon0_1.c
+              folders: []
+    - name: my_driver
+      files: []
+      folders:
+        - name: key
+          files:
+            - path: ../my_driver/key/key.c
+            - path: ../my_driver/key/key.h
+          folders: []
+        - name: lcd
+          files:
+            - path: ../my_driver/lcd/TFT_LCD.c
+            - path: ../my_driver/lcd/TFT_LCD.h
+          folders: []
+        - name: aht20
+          files:
+            - path: ../my_driver/aht20/AHT20.c
+            - path: ../my_driver/aht20/AHT20.h
+          folders: []
+        - name: esp_at
+          files:
+            - path: ../my_driver/esp_at/esp_at.c
+            - path: ../my_driver/esp_at/esp_at.h
+          folders: []
+        - name: board
+          files:
+            - path: ../my_driver/board/IIC.c
+            - path: ../my_driver/board/IIC.h
+            - path: ../my_driver/board/led.c
+            - path: ../my_driver/board/led.h
+            - path: ../my_driver/board/led_describe.h
+            - path: ../my_driver/board/SPI.c
+            - path: ../my_driver/board/SPI.h
+            - path: ../my_driver/board/tim.c
+            - path: ../my_driver/board/tim.h
+            - path: ../my_driver/board/usart.c
+            - path: ../my_driver/board/usart.h
+          folders: []
+        - name: rtc
+          files:
+            - path: ../my_driver/rtc/rtc.c
+            - path: ../my_driver/rtc/rtc.h
+          folders: []
+        - name: dma
+          files:
+            - path: ../my_driver/dma/dma.c
+            - path: ../my_driver/dma/dma.h
+          folders: []
+    - name: firmware
+      files: []
+      folders:
+        - name: cmsis
+          files:
+            - path: ../firmware/cmsis/device/system_stm32f4xx.c
+            - path: ../firmware/cmsis/device/startup_stm32f40_41xxx.s
+          folders: []
+        - name: driver
+          files:
+            - path: ../firmware/driver/src/misc.c
+            - path: ../firmware/driver/src/stm32f4xx_adc.c
+            - path: ../firmware/driver/src/stm32f4xx_can.c
+            - path: ../firmware/driver/src/stm32f4xx_cec.c
+            - path: ../firmware/driver/src/stm32f4xx_crc.c
+            - path: ../firmware/driver/src/stm32f4xx_cryp.c
+            - path: ../firmware/driver/src/stm32f4xx_cryp_aes.c
+            - path: ../firmware/driver/src/stm32f4xx_cryp_des.c
+            - path: ../firmware/driver/src/stm32f4xx_cryp_tdes.c
+            - path: ../firmware/driver/src/stm32f4xx_dac.c
+            - path: ../firmware/driver/src/stm32f4xx_dbgmcu.c
+            - path: ../firmware/driver/src/stm32f4xx_dcmi.c
+            - path: ../firmware/driver/src/stm32f4xx_dfsdm.c
+            - path: ../firmware/driver/src/stm32f4xx_dma.c
+            - path: ../firmware/driver/src/stm32f4xx_dma2d.c
+            - path: ../firmware/driver/src/stm32f4xx_dsi.c
+            - path: ../firmware/driver/src/stm32f4xx_exti.c
+            - path: ../firmware/driver/src/stm32f4xx_flash.c
+            - path: ../firmware/driver/src/stm32f4xx_flash_ramfunc.c
+            - path: ../firmware/driver/src/stm32f4xx_fmpi2c.c
+            - path: ../firmware/driver/src/stm32f4xx_fsmc.c
+            - path: ../firmware/driver/src/stm32f4xx_gpio.c
+            - path: ../firmware/driver/src/stm32f4xx_hash.c
+            - path: ../firmware/driver/src/stm32f4xx_hash_md5.c
+            - path: ../firmware/driver/src/stm32f4xx_hash_sha1.c
+            - path: ../firmware/driver/src/stm32f4xx_i2c.c
+            - path: ../firmware/driver/src/stm32f4xx_iwdg.c
+            - path: ../firmware/driver/src/stm32f4xx_lptim.c
+            - path: ../firmware/driver/src/stm32f4xx_ltdc.c
+            - path: ../firmware/driver/src/stm32f4xx_pwr.c
+            - path: ../firmware/driver/src/stm32f4xx_qspi.c
+            - path: ../firmware/driver/src/stm32f4xx_rcc.c
+            - path: ../firmware/driver/src/stm32f4xx_rng.c
+            - path: ../firmware/driver/src/stm32f4xx_rtc.c
+            - path: ../firmware/driver/src/stm32f4xx_sai.c
+            - path: ../firmware/driver/src/stm32f4xx_sdio.c
+            - path: ../firmware/driver/src/stm32f4xx_spdifrx.c
+            - path: ../firmware/driver/src/stm32f4xx_spi.c
+            - path: ../firmware/driver/src/stm32f4xx_syscfg.c
+            - path: ../firmware/driver/src/stm32f4xx_tim.c
+            - path: ../firmware/driver/src/stm32f4xx_usart.c
+            - path: ../firmware/driver/src/stm32f4xx_wwdg.c
+          folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: df917c58f90279902a7ab0e5a987dd32
+targets:
+  f407:
+    cppPreprocessAttrs:
+      defineList:
+        - STM32F40_41xxx
+        - USE_STDPERIPH_DRIVER
+        - HSE_VALUE=8000000
+      incList:
+        - .cmsis/include
+        - RTE/_f407
+        - ../firmware/cmsis/core
+        - ../firmware/cmsis/device
+        - ../firmware/driver/inc
+        - ../app
+        - ../my_driver
+        - ../app/font
+        - ../app/img
+        - ../app/page
+        - ../my_driver/board
+        - ../my_driver/aht20
+        - ../my_driver/esp_at
+        - ../my_driver/key
+        - ../my_driver/lcd
+        - ../my_driver/rtc
+        - ../my_driver/dma
+      libList: []
+    excludeList: []
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler: {}
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            gnu-extensions: true
+            one-elf-section-per-function: true
+            optimization: level-0
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+        scatterFilePath: <YOUR_SCATTER_FILE>.sct
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x10000"
+                startAddr: "0x10000000"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x100000"
+                startAddr: "0x08000000"
+              tag: IROM
+        useCustomScatterFile: false
+      AC6:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 3
+          afterBuildTasks: []
+          asm-compiler:
+            $use: asm-auto
+            defines: []
+            misc-controls: ""
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            language-c: c99
+            language-cpp: c++11
+            link-time-optimization: false
+            one-elf-section-per-function: true
+            optimization: level-0
+            short-enums#wchar: true
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: false
+          linker:
+            $disableOutputTask: true
+            $outputTaskExcludes:
+              - .bin
+            misc-controls: --diag_suppress=L6329
+            output-format: elf
+            ro-base: "0x08000000"
+            rw-base: "0x20000000"
+            xo-base: ""
+        scatterFilePath: ""
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x10000"
+                startAddr: "0x10000000"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x100000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+      OpenOCD:
+        baseAddr: "0x08000000"
+        bin: ""
+        interface: cmsis-dap-v1
+        target: stm32f4x
+    uploader: OpenOCD
