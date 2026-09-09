@@ -13,27 +13,27 @@
 #include "task.h"
 #include "timers.h"
 
-#define MLOOP_EVENT_TIME_SYNC      (1 << 0)
-#define MLOOP_EVENT_WIFI_UPDATE    (1 << 2)
-#define MLOOP_EVENT_TIME_UPDATE    (1 << 3)
-#define MLOOP_EVENT_INNER_UPDATE   (1 << 4)
+#define MLOOP_EVENT_TIME_SYNC (1 << 0)
+#define MLOOP_EVENT_WIFI_UPDATE (1 << 2)
+#define MLOOP_EVENT_TIME_UPDATE (1 << 3)
+#define MLOOP_EVENT_INNER_UPDATE (1 << 4)
 #define MLOOP_EVENT_OUTDOOR_UPDATE (1 << 5)
-#define MLOOP_EVENT_ALL            (MLOOP_EVENT_TIME_SYNC |    \
-                                    MLOOP_EVENT_WIFI_UPDATE |  \
-                                    MLOOP_EVENT_TIME_UPDATE |  \
-                                    MLOOP_EVENT_INNER_UPDATE | \
-                                    MLOOP_EVENT_OUTDOOR_UPDATE)
+#define MLOOP_EVENT_ALL (MLOOP_EVENT_TIME_SYNC |    \
+                         MLOOP_EVENT_WIFI_UPDATE |  \
+                         MLOOP_EVENT_TIME_UPDATE |  \
+                         MLOOP_EVENT_INNER_UPDATE | \
+                         MLOOP_EVENT_OUTDOOR_UPDATE)
 
-#define MS(x)      (x)
+#define MS(x) (x)
 #define SECONDS(x) MS((x) * 1000)
 #define MINUTES(x) SECONDS((x) * 60)
-#define HOURS(x)   MINUTES((x) * 60)
-#define DAYS(x)    HOURS((x) * 24)
+#define HOURS(x) MINUTES((x) * 60)
+#define DAYS(x) HOURS((x) * 24)
 
-#define TIME_SYNC_INTERVAL      HOURS(1)
-#define WIFI_UPDATE_INTERVAL    SECONDS(5)
-#define TIME_UPDATE_INTERVAL    SECONDS(1)
-#define INNER_UPDATE_INTERVAL   MINUTES(3)
+#define TIME_SYNC_INTERVAL HOURS(1)
+#define WIFI_UPDATE_INTERVAL SECONDS(5)
+#define TIME_UPDATE_INTERVAL SECONDS(1)
+#define INNER_UPDATE_INTERVAL MINUTES(3)
 #define OUTDOOR_UPDATE_INTERVAL MINUTES(10)
 
 static TaskHandle_t mloop_task;
@@ -181,8 +181,10 @@ static float current_inner_hum = 0.0f;
 
 void get_current_inner_env(float *temp, float *hum)
 {
-    if (temp) *temp = current_inner_temp;
-    if (hum) *hum = current_inner_hum;
+    if (temp)
+        *temp = current_inner_temp;
+    if (hum)
+        *hum = current_inner_hum;
 }
 
 static void inner_update(void)
@@ -284,7 +286,7 @@ static void outdoor_update(void)
     // return true;
 }
 
-void main_loop(void)
+void main_loop(void) // 未使用该函数
 {
     time_sync();
     wifi_update();
@@ -300,14 +302,15 @@ static void mloop_func(void *param)
     uint32_t event;
     while (1)
     {
+        // 阻塞等待任务通知，没有事件时任务让出CPU不占用资源
         event = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         if (event & MLOOP_EVENT_TIME_SYNC)
             time_sync();
-        if (event & MLOOP_EVENT_WIFI_UPDATE)
+        else if (event & MLOOP_EVENT_WIFI_UPDATE)
             wifi_update();
-        if (event & MLOOP_EVENT_INNER_UPDATE)
+        else if (event & MLOOP_EVENT_INNER_UPDATE)
             inner_update();
-        if (event & MLOOP_EVENT_OUTDOOR_UPDATE)
+        else if (event & MLOOP_EVENT_OUTDOOR_UPDATE)
             outdoor_update();
 #if (ENABLE_LVGL_USE == 0)
         if (event & MLOOP_EVENT_TIME_UPDATE)
@@ -316,9 +319,9 @@ static void mloop_func(void *param)
     }
 }
 
-static void mloop_timer_callback(TimerHandle_t time1)
+static void mloop_timer_callback(TimerHandle_t time1) // 周期性调用
 {
-    uint32_t event = (uint32_t)pvTimerGetTimerID(time1);
+    uint32_t event = (uint32_t)pvTimerGetTimerID(time1); // 获取软件定时器ID
     xTaskNotify(mloop_task, event, eSetBits);
 }
 

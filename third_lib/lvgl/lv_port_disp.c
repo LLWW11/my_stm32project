@@ -60,22 +60,22 @@ void lv_port_disp_init(void)
      * -----------------------*/
     disp_init();
     lv_init();
-
-    /* 创建一个绘制缓冲区 */
+    // 创建并初始化一个绘制缓冲区
     static lv_disp_draw_buf_t draw_buf_dsc_1;
     static lv_color_t buf_1[MY_DISP_HOR_RES * 90];
     lv_disp_draw_buf_init(&draw_buf_dsc_1, buf_1, NULL, MY_DISP_HOR_RES * 30);
+    // 没有双缓冲
 
     /* 在 LVGL 中注册屏幕 */
     // extern lv_disp_drv_t disp_drv;
     // static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);
 
-    /* 设定屏幕分辨率 */
+    // 设定屏幕分辨率240*320
     disp_drv.hor_res = MY_DISP_HOR_RES;
     disp_drv.ver_res = MY_DISP_VER_RES;
 
-    disp_drv.flush_cb = disp_flush;
+    disp_drv.flush_cb = disp_flush; //
     disp_drv.draw_buf = &draw_buf_dsc_1;
 
     /* 注册驱动 */
@@ -140,8 +140,7 @@ static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_
     TFT_Color_Buffer(area->x1, area->y1, area->x2, area->y2, (const uint16_t *)color_p);
     extern lv_disp_drv_t *g_disp_drv;
     g_disp_drv = disp_drv;
-    /*IMPORTANT!!!
-     *Inform the graphics library that you are ready with the flushing*/
+    // 通知图形库已经准备好刷新，这个在DMA中断中执行
     // lv_disp_flush_ready(disp_drv);
 }
 

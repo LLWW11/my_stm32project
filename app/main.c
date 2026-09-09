@@ -27,7 +27,7 @@ static void lvgl_task(void *pvParameter)
     while (1)
     {
         if (xGuiMutex != NULL)
-        {
+        { // ¶ÀÕ¼»¥³âËø×î¶à10ms
             if (xSemaphoreTake(xGuiMutex, pdMS_TO_TICKS(10)) == pdTRUE)
             {
                 lv_task_handler();
