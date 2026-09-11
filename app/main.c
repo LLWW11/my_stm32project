@@ -1,7 +1,13 @@
+#include "FreeRTOS.h"
 #include "app.h"
+#include "app_ui.h"
 #include "board.h"
 #include "page.h"
-#include "delay.h"
+#include "task.h"
+#include "dbg_config.h"
+#include "lvgl.h"
+#include "TFT_LCD.h"
+#include "lv_port_disp.h"
 /*
 char str[] = "what are you doing now ?";
 char buffer[1000] = {0};
@@ -12,86 +18,71 @@ float humidity = 0;
 uint16_t len;
 const char *weather_URL =
 "http://api.weatherapi.com/v1/current.json?key=24f551dd292c4927850130628260903&q=auto:ip&lang=zh_cn";
-esp_wifi_info_t wifi_Info;
-time_Info_t timeinfo;
+esp_wifi_info_t wifi_Info; time_Info_t timeinfo;
 */
+#if (ENABLE_LVGL_USE == 1)
+static void lvgl_task(void *pvParameter)
+{
+    printf("LVGL run before\n");
+    while (1)
+    {
+        if (xGuiMutex != NULL)
+        { // 独占互斥锁最多10ms
+            if (xSemaphoreTake(xGuiMutex, pdMS_TO_TICKS(10)) == pdTRUE)
+            {
+                lv_task_handler();
+                xSemaphoreGive(xGuiMutex);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
+#endif
+static void main_init(void *param)
+{
+    board_Init();
+    UI_init();
+    lv_port_disp_init();
+#if (ENABLE_LVGL_USE == 1)
+    app_keypad_init();
+#endif
+    /*
+    //测试用
+    lv_obj_t * label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, "Hello LVGL!");
+    lv_obj_center(label);
+*/
+
+    welcome_page_display();
+    wifi_init();
+
+    wait_wifi_connet();
+    main_loop_Init();
+    vTaskDelete(NULL);
+}
 
 int main()
 {
     board_low_level_init();
-    board_Init();
-    welcome_page_display();
-    wifi_init();
-    wait_wifi_connet();
-    // delay_ms(1000);
-    main_page_display();
-    main_loop_Init();
+    xTaskCreate(main_init, "main_init", 1024, NULL, 9, NULL);
+#if (ENABLE_LVGL_USE)
+    xTaskCreate(lvgl_task, "lvgl_task", 1024, NULL, 8, NULL);
+#endif
+    vTaskStartScheduler();
     while (1)
     {
-        main_loop();
-        /*
-                if (KeyList[0].PressFlag == 1)
-                {
-                    KeyList[0].PressFlag = 0;
-                    // ==================按键任务区=============================
-                    keynum++;
-                    printf("KEY0 Pressed!\r\n");
-                    memset(buffer, 0, sizeof(buffer));
-                    usart2_sendString("AT+CWSTATE?\r\n");
-                    len = usart2_receiveString(buffer, sizeof(buffer), 50);
-                    if (parse_CWSTATE(buffer, &wifi_Info))
-                        printf("wifi state:2,[%s]\r\n", wifi_Info.ssid);
-                    printf("Original Data: %s\r\n", buffer);
-                }
-                if (KeyList[1].PressFlag == 1)
-                {
-                    KeyList[1].PressFlag = 0;
-                    printf("KEY1 Pressed!\r\n");
-                    keynum++;
-                    esp_at_sntp_Init();
-                    usart2_sendString("AT+CIPSNTPTIME?\r\n");
-                    memset(buffer1, 0, sizeof(buffer1));
-                    len = usart2_receiveString(buffer1, sizeof(buffer1), 100);
-                    if (parse_CIPSNTPTIME(buffer1, &timeinfo))
-                    {
-                        printf("[Year]: \r\t%s\r\n", timeinfo.year);
-                        printf("[Month]: \r\t%s\r\n", timeinfo.month);
-                        printf("[Date]: \r\t%d\r\n", timeinfo.day);
-                        printf("[Time]: \r\t%02u:%02u:%02u\r\n", timeinfo.hour,
-           timeinfo.min, timeinfo.sec); printf("[Weekday]:\r\t%s\r\n",
-           timeinfo.weekday);
-                    }
-                    printf("Original Data:  %s\r\n", buffer1);
-                }
-                if (KeyList[2].PressFlag == 1)
-                {
-                    KeyList[2].PressFlag = 0;
-                    printf("KEY2 Pressed!\r\n");
-                    keynum++;
-                    weather_Info_t weather_info;
-                    char weather_http_response[1000];
-                    // uint8_t lenurl = ;
-                    while (!esp_at_http_get(weather_URL, weather_http_response,
-           1000))
-                        ;
-                    parse_WeatherAPI(weather_http_response, &weather_info);
-                    // parse_WeatherSenstive(weather_http_response,
-           &weather_info); printf("%s\n", weather_http_response);
-
-                    printf("current city:\r\t%s\r\n", weather_info.city);
-                    printf("location:\r\t%s\r\n", weather_info.location);
-                    printf("weather text:\r\t%s\r\n", weather_info.weather);
-                    printf("weather code:\r\t%s\r\n",
-           weather_info.weather_code); printf("temperature:\r\t%s\r\n",
-           weather_info.temperature); if (aht20_start_measurement())
-                        printf("AHT20 start measuring\r\n");
-                    delay_ms(80);
-                    aht20_read_measurement(&temperature, &humidity);
-                    printf("temperature: %2f,humidity: %2f\r\n", temperature,
-           humidity);
-                }
-                keynum %= 2;
-
-                */
+        ; // Code shouldn't run here
     }
+}
+
+void vAssertCalled(const char *file, int line)
+{
+    while (1)
+    {
+        ;
+    }
+}
+void vApplicationTickHook(void)
+{
+    lv_tick_inc(1);
 }

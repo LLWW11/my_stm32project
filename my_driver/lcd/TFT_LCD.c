@@ -1,11 +1,19 @@
 #include "TFT_LCD.h"
 #include "SPI.h"
 #include "TFT_Img.h"
-#include "delay.h"
 #include "dma.h"
 #include "stdbool.h"
 #include "stdlib.h"
 #include "string.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "dbg_config.h"
+
+#if (ENABLE_LVGL_USE)
+#include "lv_port_disp.h"
+lv_disp_drv_t *g_disp_drv = NULL;
+#endif
 /*
 硬件连接：
 SDA：PA7   	MOSI数据线
@@ -27,22 +35,15 @@ BL： PD13	背光控制pin，拉高时打开背光，当被拉低时关闭背光
 #define SPI_BL_1  GPIO_SetBits(GPIOD, GPIO_Pin_13)
 #define SPI_BL_0  GPIO_ResetBits(GPIOD, GPIO_Pin_13)
 
-// 动态切换SPI数据位宽
-// static inline void SPI_Set_16b(void) {
-//     SPI1->CR1 &= ~(1 << 6); // 先关闭 SPI (SPE=0)
-//     SPI1->CR1 |= (1 << 11); // 设置 DFF 位为 1，即 16-bit 模式
-//     SPI1->CR1 |= (1 << 6);  // 重新使能 SPI (SPE=1)
-// }
-// static inline void SPI_Set_8b(void) {
-//     SPI1->CR1 &= ~(1 << 6);  // 先关闭 SPI (SPE=0)
-//     SPI1->CR1 &= ~(1 << 11); // 清除 DFF 位，即 8-bit 模式
-//     SPI1->CR1 |= (1 << 6);   // 重新使能 SPI (SPE=1)
-// }
+static SemaphoreHandle_t write_gram_Semphore;
+
 void TFT_SEND_CMD(uint8_t o_command)
 {
     SPI_CS_0;
     SPI_DC_0;
+    // SPI_Cmd(SPI1, DISABLE);
     SPI_DataSizeConfig(SPI1, SPI_DataSize_8b);
+    // SPI_Cmd(SPI1, ENABLE);
     SPI1_SendByte(o_command);
     SPI_CS_1; // 每次发送完数据之后片选拉高
 }
@@ -50,7 +51,9 @@ void TFT_SEND_DATA(uint8_t o_data)
 {
     SPI_CS_0;
     SPI_DC_1;
+    // SPI_Cmd(SPI1, DISABLE);
     SPI_DataSizeConfig(SPI1, SPI_DataSize_8b);
+    // SPI_Cmd(SPI1, ENABLE);
     SPI1_SendByte(o_data);
     SPI_CS_1;
 }
@@ -65,19 +68,14 @@ void ST7789_write_reg_MultiData(uint8_t reg, uint8_t *dat, uint8_t len)
     for (uint8_t i = 0; i < len; i++)
         TFT_SEND_DATA(*(dat + i)); // 软件写st7789的寄存器
 }
-/**
- * @brief 发送数据
- *
- * @param data
- * @param length
- * @param meminc
- */
+
 void st7789_write_gram_DMA(uint8_t data[], uint32_t length, bool singleColor)
 {
     SPI_DataSizeConfig(SPI1, SPI_DataSize_16b);
     SPI_CS_0;
     SPI_DC_1; //
     length >>= 1;
+    xSemaphoreTake(write_gram_Semphore, 0);
     do
     {
         uint32_t chunk_size = (length < 65535) ? length : 65535;
@@ -91,14 +89,13 @@ void st7789_write_gram_DMA(uint8_t data[], uint32_t length, bool singleColor)
 
         DMA_ClearFlag(DMA2_Stream5, DMA_FLAG_TCIF5);
         DMA_Cmd(DMA2_Stream5, ENABLE);
-        while (DMA_GetFlagStatus(DMA2_Stream5, DMA_FLAG_TCIF5) == RESET)
-            ;
+        xSemaphoreTake(write_gram_Semphore, portMAX_DELAY);
+
         if (!singleColor)
             data += chunk_size * 2;
         length -= chunk_size;
     } while (length > 0);
-    while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) != RESET)
-        ;
+    // while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) != RESET);
     SPI_CS_1; //
 }
 void TFT_clear(void)
@@ -153,9 +150,9 @@ void TFT_full(uint16_t color)
 void TFT_Reset(void)
 {
     SPI_RST_0;
-    SysTick_delay_us(20);
+    vTaskDelay(pdMS_TO_TICKS(1)); // 至少20us
     SPI_RST_1;
-    delay_ms(120); // 见手册
+    vTaskDelay(pdMS_TO_TICKS(120)); // 见手册
 }
 void TFT_init(void)
 {
@@ -166,11 +163,14 @@ void TFT_init(void)
     SPI_SCK_1;
     TFT_Reset();
 
-    TFT_SEND_CMD(0x01); // Software Reset
-    delay_ms(120);
+    write_gram_Semphore = xSemaphoreCreateBinary();
+    configASSERT(write_gram_Semphore);
 
-    TFT_SEND_CMD(0x11); // Sleep Out
-    delay_ms(6);        //
+    TFT_SEND_CMD(0x01); // Software Reset
+    vTaskDelay(pdMS_TO_TICKS(120));
+
+    TFT_SEND_CMD(0x11);           // Sleep Out
+    vTaskDelay(pdMS_TO_TICKS(6)); //
 
     //-----------------------ST7789V Frame rate setting-----------------//
     ST7789_write_reg(0x3A, 0x05); // 65k mode
@@ -208,7 +208,7 @@ void TFT_init(void)
         0xe1, reg_list2, sizeof(reg_list2) / sizeof(uint8_t)); // Set Gamma
 
     TFT_SEND_CMD(0x20); // 反显
-    delay_ms(120);
+    vTaskDelay(pdMS_TO_TICKS(120));
     TFT_SEND_CMD(0x29); // 开启显示
     TFT_full(BLACK);
 }
@@ -607,8 +607,6 @@ void TFT_LCD_Write_String(uint16_t x,
         {
             st7789_write_single_ascii(x, y, *(str + i), font, color_bg,
                                       color_ch);
-            // TFT_LCD_Write_single_ASCII(x, y, *(str + i), font, color_bg,
-            //                            color_ch);
             x += font->height / 2;
         }
         else
@@ -622,4 +620,36 @@ void TFT_LCD_Write_String(uint16_t x,
         }
         i += len;
     }
+}
+
+void DMA2_Stream5_IRQHandler(void)
+{
+    if (DMA_GetITStatus(DMA2_Stream5, DMA_IT_TCIF5) == SET)
+    {
+        DMA_ClearITPendingBit(DMA2_Stream5, DMA_IT_TCIF5);
+        BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(write_gram_Semphore, &pxHigherPriorityTaskWoken);
+#if (ENABLE_LVGL_USE == 1)
+        extern lv_disp_drv_t *g_disp_drv;
+        if (g_disp_drv != NULL)
+            lv_disp_flush_ready(g_disp_drv);
+#endif
+        portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
+    }
+}
+
+void TFT_Color_Buffer(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, const uint16_t *color_p)
+{
+
+    uint8_t colum_addr_set[] = {x1 >> 8, x1 & 0xff, x2 >> 8, x2 & 0xff};
+    ST7789_write_reg_MultiData(0x2a, colum_addr_set, 4);
+
+    uint8_t row_addr_set[] = {y1 >> 8, y1 & 0xff, y2 >> 8, y2 & 0xff};
+    ST7789_write_reg_MultiData(0x2b, row_addr_set, 4);
+
+    TFT_SEND_CMD(0x2C);
+
+    uint32_t size = (x2 - x1 + 1) * (y2 - y1 + 1) * 2;
+
+    st7789_write_gram_DMA((uint8_t *)color_p, size, false);
 }

@@ -6,18 +6,20 @@ packDir: null
 srcDirs: []
 virtualFolder:
   name: <virtual_root>
-  files: []
+  files:
+    - path: FreeRTOS.txt
   folders:
     - name: app
       files:
         - path: ../app/app.h
         - path: ../app/board.c
         - path: ../app/board.h
-        - path: ../app/delay.c
-        - path: ../app/delay.h
         - path: ../app/main.c
         - path: ../app/mainloop.c
         - path: ../app/wifi.c
+        - path: ../app/app_ui.c
+        - path: ../app/app_ui.h
+        - path: ../app/dbg_config.h
       folders:
         - name: font
           files:
@@ -162,6 +164,47 @@ virtualFolder:
             - path: ../firmware/driver/src/stm32f4xx_usart.c
             - path: ../firmware/driver/src/stm32f4xx_wwdg.c
           folders: []
+    - name: third_lib
+      files: []
+      folders:
+        - name: FreeRTOS
+          files:
+            - path: ../third_lib/FreeRTOS/croutine.c
+            - path: ../third_lib/FreeRTOS/event_groups.c
+            - path: ../third_lib/FreeRTOS/list.c
+            - path: ../third_lib/FreeRTOS/queue.c
+            - path: ../third_lib/FreeRTOS/stream_buffer.c
+            - path: ../third_lib/FreeRTOS/tasks.c
+            - path: ../third_lib/FreeRTOS/timers.c
+          folders:
+            - name: include
+              files:
+                - path: ../third_lib/FreeRTOS/include/atomic.h
+                - path: ../third_lib/FreeRTOS/include/croutine.h
+                - path: ../third_lib/FreeRTOS/include/deprecated_definitions.h
+                - path: ../third_lib/FreeRTOS/include/event_groups.h
+                - path: ../third_lib/FreeRTOS/include/FreeRTOS.h
+                - path: ../third_lib/FreeRTOS/include/list.h
+                - path: ../third_lib/FreeRTOS/include/message_buffer.h
+                - path: ../third_lib/FreeRTOS/include/portable.h
+                - path: ../third_lib/FreeRTOS/include/projdefs.h
+                - path: ../third_lib/FreeRTOS/include/queue.h
+                - path: ../third_lib/FreeRTOS/include/semphr.h
+                - path: ../third_lib/FreeRTOS/include/stack_macros.h
+                - path: ../third_lib/FreeRTOS/include/StackMacros.h
+                - path: ../third_lib/FreeRTOS/include/stream_buffer.h
+                - path: ../third_lib/FreeRTOS/include/task.h
+                - path: ../third_lib/FreeRTOS/include/timers.h
+                - path: ../third_lib/FreeRTOS/include/mpu_wrappers.h
+              folders: []
+            - name: portable
+              files:
+                - path: ../third_lib/FreeRTOS/portable/heap_4.c
+                - path: ../third_lib/FreeRTOS/portable/port.c
+                - path: ../third_lib/FreeRTOS/portable/portmacro.h
+                - path: ../third_lib/FreeRTOS/portable/ReadMe.url
+                - path: ../third_lib/FreeRTOS/portable/FreeRTOSConfig.h
+              folders: []
 dependenceList: []
 outDir: build
 miscInfo:
@@ -190,9 +233,14 @@ targets:
         - ../my_driver/key
         - ../my_driver/lcd
         - ../my_driver/rtc
+        - ../third_lib/FreeRTOS
+        - ../third_lib/FreeRTOS/include
+        - ../third_lib/FreeRTOS/portable
         - ../my_driver/dma
       libList: []
     excludeList: []
+    settings:
+      debugger: cortex-debug
     toolchain: AC5
     toolchainConfigMap:
       AC5:
