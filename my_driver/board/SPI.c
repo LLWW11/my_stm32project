@@ -14,7 +14,7 @@ BL： PD13	背光控制pin，当被拉高时打开背光，当被拉低时关闭
 */
 void SPI1_Init(void)
 {
-    // 
+    //
     GPIO_InitTypeDef GPIOA_InitStructure;
     GPIO_StructInit(&GPIOA_InitStructure);
     GPIOA_InitStructure.GPIO_Mode = GPIO_Mode_AF;
@@ -60,11 +60,76 @@ void SPI1_SendByte(uint8_t dat)
         ;
     SPI_SendData(SPI1, dat);
     while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) == SET)
-        ; 
+        ;
+}
+
+
+/*
+SPI3用于读写W25Q128
+硬件连接：
+MOSI ：PB5
+MISO ：PB4
+SCLK ：PB3
+CS   ：PB14
+*/
+
+void SPI3_Init(void)
+{
+
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI3, ENABLE);
+
+    GPIO_InitTypeDef GPIOB_InitStructure;
+    GPIO_StructInit(&GPIOB_InitStructure);
+    GPIOB_InitStructure.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
+    GPIOB_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+    GPIOB_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIOB_InitStructure.GPIO_Speed = GPIO_High_Speed;
+    GPIOB_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(GPIOB, &GPIOB_InitStructure);
+
+    // 引脚复用功能 AF6
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_SPI3);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_SPI3);
+    GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_SPI3);
+
+    GPIOB_InitStructure.GPIO_Pin = GPIO_Pin_14;
+    GPIOB_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
+    GPIOB_InitStructure.GPIO_OType = GPIO_OType_PP;
+    GPIOB_InitStructure.GPIO_Speed = GPIO_High_Speed;
+    GPIOB_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(GPIOB, &GPIOB_InitStructure);
+
+    // 初始化拉高 CS
+    GPIO_SetBits(GPIOB, GPIO_Pin_14);
+
+    SPI_InitTypeDef SPI3_InitStruct;
+    SPI_StructInit(&SPI3_InitStruct);
+    SPI3_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // 
+    SPI3_InitStruct.SPI_Mode = SPI_Mode_Master;                      // 
+    SPI3_InitStruct.SPI_DataSize = SPI_DataSize_8b;                  // 
+    SPI3_InitStruct.SPI_CPOL = SPI_CPOL_High;                        //
+    SPI3_InitStruct.SPI_CPHA = SPI_CPHA_2Edge;
+    SPI3_InitStruct.SPI_NSS = SPI_NSS_Soft;                         
+    SPI3_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4; 
+    SPI3_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;                
+    SPI3_InitStruct.SPI_CRCPolynomial = 7;
+    SPI_Init(SPI3, &SPI3_InitStruct);
+
+    SPI_Cmd(SPI3, ENABLE); // 使能 SPI3
+}
+
+void SPI3_SendByte(uint8_t dat)
+{
+    while (!SPI_GetFlagStatus(SPI3, SPI_FLAG_TXE))
+        ;
+    SPI_SendData(SPI3, dat);
+    while (SPI_GetFlagStatus(SPI3, SPI_FLAG_BSY) == SET)
+        ;
 }
 
 // void SPI1_Wait_Busy(void)
 // {
-//     while (!SPI_GetFlagStatus(SPI1, SPI_FLAG_TXE));       
-//     while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) == SET); 
+//     while (!SPI_GetFlagStatus(SPI1, SPI_FLAG_TXE));
+//     while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) == SET);
 // }

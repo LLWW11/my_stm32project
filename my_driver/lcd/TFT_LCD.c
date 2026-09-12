@@ -24,16 +24,16 @@ CS： PA4	片选，低电平有效
 BL： PD13	背光控制pin，拉高时打开背光，当被拉低时关闭背光
 最大时钟频率为16.66Mhz
 */
-#define SPI_DC_0  GPIO_ResetBits(GPIOD, GPIO_Pin_6)
-#define SPI_DC_1  GPIO_SetBits(GPIOD, GPIO_Pin_6)
+#define SPI_DC_0 GPIO_ResetBits(GPIOD, GPIO_Pin_6)
+#define SPI_DC_1 GPIO_SetBits(GPIOD, GPIO_Pin_6)
 #define SPI_SCK_1 GPIO_ResetBits(GPIOA, GPIO_Pin_5)
 #define SPI_SCK_0 GPIO_SetBits(GPIOA, GPIO_Pin_5)
 #define SPI_RST_0 GPIO_ResetBits(GPIOD, GPIO_Pin_7)
 #define SPI_RST_1 GPIO_SetBits(GPIOD, GPIO_Pin_7)
-#define SPI_CS_0  GPIO_ResetBits(GPIOA, GPIO_Pin_4)
-#define SPI_CS_1  GPIO_SetBits(GPIOA, GPIO_Pin_4)
-#define SPI_BL_1  GPIO_SetBits(GPIOD, GPIO_Pin_13)
-#define SPI_BL_0  GPIO_ResetBits(GPIOD, GPIO_Pin_13)
+#define SPI_CS_0 GPIO_ResetBits(GPIOA, GPIO_Pin_4)
+#define SPI_CS_1 GPIO_SetBits(GPIOA, GPIO_Pin_4)
+#define SPI_BL_1 GPIO_SetBits(GPIOD, GPIO_Pin_13)
+#define SPI_BL_0 GPIO_ResetBits(GPIOD, GPIO_Pin_13)
 
 static SemaphoreHandle_t write_gram_Semphore;
 
