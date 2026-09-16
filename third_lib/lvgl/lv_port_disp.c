@@ -62,7 +62,7 @@ void lv_port_disp_init(void)
     lv_init();
     // 创建并初始化一个绘制缓冲区
     static lv_disp_draw_buf_t draw_buf_dsc_1;
-    static lv_color_t buf_1[MY_DISP_HOR_RES * 90];
+    static lv_color_t buf_1[MY_DISP_HOR_RES * 30];//MY_DISP_HOR_RES * 30的缓冲区比较省内存
     lv_disp_draw_buf_init(&draw_buf_dsc_1, buf_1, NULL, MY_DISP_HOR_RES * 30);
     // 没有双缓冲
 
