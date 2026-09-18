@@ -606,7 +606,7 @@ targets:
             use-microLIB: true
           linker:
             $outputTaskExcludes:
-              - .bin
+              - ""
             output-format: elf
         scatterFilePath: <YOUR_SCATTER_FILE>.sct
         storageLayout:
@@ -630,8 +630,8 @@ targets:
               isChecked: true
               isStartup: true
               mem:
-                size: "0x100000"
-                startAddr: "0x08000000"
+                size: "0x000F0000"
+                startAddr: "0x08010000"
               tag: IROM
         useCustomScatterFile: false
       AC6:

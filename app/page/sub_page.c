@@ -68,13 +68,12 @@ void page_square1_display(lv_obj_t *parent)
     float temp = 0.0f, hum = 0.0f;
     get_current_inner_env(&temp, &hum);
 
-    // Title
     lv_obj_t *label_title = lv_label_create(parent);
     lv_obj_set_style_text_font(label_title, &my_font_24, 0);
     lv_label_set_text(label_title, "室内环境");
     lv_obj_align(label_title, LV_ALIGN_TOP_MID, 0, 20);
 
-    // Create Arc for Temperature
+
     lv_obj_t *arc_temp = lv_arc_create(parent);
     lv_arc_set_rotation(arc_temp, 135);
     lv_arc_set_bg_angles(arc_temp, 0, 270);
@@ -93,6 +92,8 @@ void page_square1_display(lv_obj_t *parent)
     lv_label_set_text(label_temp_text, "Temp");
     lv_obj_align_to(label_temp_text, arc_temp, LV_ALIGN_OUT_BOTTOM_MID, 0, 5);
 
+
+    
     lv_obj_t *arc_hum = lv_arc_create(parent);
     lv_arc_set_rotation(arc_hum, 135);
     lv_arc_set_bg_angles(arc_hum, 0, 270);
