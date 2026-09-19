@@ -1,0 +1,5 @@
+{
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.vcFormat.indent.multiLineRelativeTo": "innermostParenthesis",
+    "C_Cpp.clang_format_fallbackStyle": "LLVM"
+}

@@ -1,0 +1,11 @@
+--cpu=Cortex-M4.fp.sp
+".\objects\main.o"
+".\objects\startup_stm32f40_41xxx.o"
+".\objects\system_stm32f4xx.o"
+".\objects\stm32f4xx_gpio.o"
+".\objects\stm32f4xx_rcc.o"
+".\objects\stm32f4xx_usart.o"
+--library_type=microlib --strict --scatter ".\Objects\weatherClock_bootloader.sct"
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\Listings\weatherClock_bootloader.map" -o .\Objects\weatherClock_bootloader.axf

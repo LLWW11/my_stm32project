@@ -1,6 +1,7 @@
 #include "AHT20.h"
 #include "TFT_LCD.h"
 #include "app.h"
+#include "app_ui.h"
 #include "board.h"
 #include "delay.h"
 #include "esp_at.h"
@@ -8,120 +9,97 @@
 #include "page.h"
 #include "usart.h"
 #include <string.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
 
-#define MS(x)      (x)
+#define MLOOP_EVENT_TIME_SYNC (1 << 0)
+#define MLOOP_EVENT_WIFI_UPDATE (1 << 2)
+#define MLOOP_EVENT_TIME_UPDATE (1 << 3)
+#define MLOOP_EVENT_INNER_UPDATE (1 << 4)
+#define MLOOP_EVENT_OUTDOOR_UPDATE (1 << 5)
+#define MLOOP_EVENT_ALL (MLOOP_EVENT_TIME_SYNC |    \
+                         MLOOP_EVENT_WIFI_UPDATE |  \
+                         MLOOP_EVENT_TIME_UPDATE |  \
+                         MLOOP_EVENT_INNER_UPDATE | \
+                         MLOOP_EVENT_OUTDOOR_UPDATE)
+
+#define MS(x) (x)
 #define SECONDS(x) MS((x) * 1000)
 #define MINUTES(x) SECONDS((x) * 60)
-#define HOURS(x)   MINUTES((x) * 60)
-#define DAYS(x)    HOURS((x) * 24)
+#define HOURS(x) MINUTES((x) * 60)
+#define DAYS(x) HOURS((x) * 24)
 
-#define TIME_SYNC_INTERVAL      DAYS(1)
-#define WIFI_UPDATE_INTERNAL    SECONDS(5)
-#define TIME_UPDATE_INTERNAL    SECONDS(1)
-#define INNER_UPDATE_INTERNAL   MINUTES(1)
-#define OUTDOOR_UPDATE_INTERNAL MINUTES(2)
+#define TIME_SYNC_INTERVAL HOURS(1)
+#define WIFI_UPDATE_INTERVAL SECONDS(5)
+#define TIME_UPDATE_INTERVAL SECONDS(1)
+#define INNER_UPDATE_INTERVAL MINUTES(3)
+#define OUTDOOR_UPDATE_INTERVAL MINUTES(10)
 
-static uint32_t time_sync_delay;
-static uint32_t wifi_update_delay;
-static uint32_t time_update_delay;
-static uint32_t inner_update_delay;
-static uint32_t outdoor_update_delay;
-
+static TaskHandle_t mloop_task;
+static TimerHandle_t time_sync_timer;
+static TimerHandle_t wifi_update_timer;
+static TimerHandle_t inner_update_timer;
+static TimerHandle_t outdoor_update_timer;
+#if (ENABLE_LVGL_USE == 0)
+static TimerHandle_t time_update_timer;
+#endif
 bool isNight = false;
 bool is2sec = false;
 bool refresh = false;
 
-static void cpu_periodic_callback(void)
+static void time_sync(void)
 {
-    if (time_sync_delay > 0)
-        time_sync_delay--;
-    if (wifi_update_delay > 0)
-        wifi_update_delay--;
-    if (time_update_delay > 0)
-        time_update_delay--;
-    if (inner_update_delay > 0)
-        inner_update_delay--;
-    if (outdoor_update_delay > 0)
-        outdoor_update_delay--;
-}
-static void time_sync()
-{
-    if (time_sync_delay > 0)
-        return;
-    time_sync_delay = TIME_SYNC_INTERVAL;
+    uint32_t restart_sync_delay = TIME_SYNC_INTERVAL;
     time_Info_t esp_time;
-    memset(&esp_time, 0, sizeof(esp_time));
-    if (!esp_sntp_get(&esp_time))
-    {
-        printf("[SNTP] get time failed\n");
-        time_sync_delay = SECONDS(5); // 间隔5s钟再试一次
-        return;
-    }
+    rtc_time_t rtc_date = {0};
     uint16_t year = 0;
     uint8_t weekday = 0;
     uint8_t month = 0;
+    memset(&esp_time, 0, sizeof(esp_time));
+
+    if (!esp_at_sntp_get_time(&esp_time))
+    {
+#if ENABLE_DEBUG_PRINT
+        printf("[SNTP] get time failed\n");
+#endif
+        restart_sync_delay = SECONDS(1);
+        goto err;
+    }
+
     for (uint8_t i = 0; i < 4; i++)
     {
         char c = esp_time.year[i];
         if (c < '0' || c > '9')
             break;
-        year = (c - '0') + year * 10;
+        year = (c - '0') + year * 10; // rtc的年份转化为字符串
     }
-
-    if (strstr(esp_time.month, "Jan") != NULL)
-        month = 1;
-    else if (strstr(esp_time.month, "Feb") != NULL)
-        month = 2;
-    else if (strstr(esp_time.month, "Mar") != NULL)
-        month = 3;
-    else if (strstr(esp_time.month, "Apr") != NULL)
-        month = 4;
-    else if (strstr(esp_time.month, "May") != NULL)
-        month = 5;
-    else if (strstr(esp_time.month, "Jun") != NULL)
-        month = 6;
-    else if (strstr(esp_time.month, "Jul") != NULL)
-        month = 7;
-    else if (strstr(esp_time.month, "Aug") != NULL)
-        month = 8;
-    else if (strstr(esp_time.month, "Sep") != NULL)
-        month = 9;
-    else if (strstr(esp_time.month, "Oct") != NULL)
-        month = 10;
-    else if (strstr(esp_time.month, "Nov") != NULL)
-        month = 11;
-    else if (strstr(esp_time.month, "Dec") != NULL)
-        month = 12;
-    else
-        month = 1; //
-
-    if (strstr(esp_time.weekday, "Mon") != NULL)
-        weekday = 1;
-    else if (strstr(esp_time.weekday, "Tue") != NULL)
-        weekday = 2;
-    else if (strstr(esp_time.weekday, "Wed") != NULL)
-        weekday = 3;
-    else if (strstr(esp_time.weekday, "Thu") != NULL)
-        weekday = 4;
-    else if (strstr(esp_time.weekday, "Fri") != NULL)
-        weekday = 5;
-    else if (strstr(esp_time.weekday, "Sat") != NULL)
-        weekday = 6;
-    else if (strstr(esp_time.weekday, "Sun") != NULL)
-        weekday = 7;
-    if (weekday == 0)
-        weekday = 1;
+    const char *month_tmp[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    for (uint8_t i = 0; i < 12; i++)
+    {
+        if (strstr(esp_time.month, month_tmp[i]) != NULL)
+            month = i + 1;
+    }
+    const char *weekday_tmp[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+    for (uint8_t i = 0; i < 12; i++)
+    {
+        if (strstr(esp_time.weekday, weekday_tmp[i]) != NULL)
+            weekday = i + 1;
+    }
     if (year < 2000)
     {
-        printf("[SNTP] invalid date formate\r\n");
-        time_sync_delay = SECONDS(5); // 间隔5s钟再试一次
-        return;
+#if ENABLE_DEBUG_PRINT
+        printf("[SNTP] invalid date format\r\n");
+#endif
+        restart_sync_delay = SECONDS(1);
+        goto err;
     }
+#if ENABLE_DEBUG_PRINT
     printf("[SNTP] time:%04u-%02u-%02u %02u:%02u:%02u %s\n", year, month,
            esp_time.day, esp_time.hour, esp_time.min, esp_time.sec,
            esp_time.weekday);
-
-    rtc_time_t rtc_date = {0};
+#endif
     rtc_date.year = year;
     rtc_date.month = month;
     rtc_date.weekday = weekday;
@@ -131,19 +109,21 @@ static void time_sync()
     rtc_date.second = esp_time.sec;
     rtc_set_time(&rtc_date);
 
-    time_update_delay = 0;
+err:
+    xTimerChangePeriod(time_sync_timer, pdMS_TO_TICKS(restart_sync_delay), 0);
+    // xTaskNotify(mloop_task, MLOOP_EVENT_TIME_UPDATE, eSetBits);
 }
 static void wifi_update(void)
 {
     static esp_wifi_info_t last_Info = {0};
-    if (wifi_update_delay > 0)
-        return;
-    wifi_update_delay = WIFI_UPDATE_INTERNAL;
     static esp_wifi_info_t wifiInfo;
+    xTimerChangePeriod(wifi_update_timer, pdMS_TO_TICKS(WIFI_UPDATE_INTERVAL), 0);
     memset(&wifiInfo, 0, sizeof(wifiInfo));
-    if (!esp_get_wifi_info(&wifiInfo))
+    if (!esp_at_get_wifi_info(&wifiInfo))
     {
-        printf("[AT] wifi info get failed\n");
+#if ENABLE_DEBUG_PRINT
+        // printf("[AT] wifi info get failed\n");
+#endif
         return;
     }
     if (memcmp(&wifiInfo, &last_Info, sizeof(esp_wifi_info_t)) == 0)
@@ -153,27 +133,28 @@ static void wifi_update(void)
         return;
     if (wifiInfo.isConnect)
     {
+#if ENABLE_DEBUG_PRINT
         printf("[WIFI] connected to %s\n", wifiInfo.ssid);
         printf("[WIFI] SSID: %s, MAC: %s,  RSSI: %d\n", wifiInfo.ssid,
                wifiInfo.mac, wifiInfo.rssi);
+#endif
         main_page_redraw_wifissid(wifiInfo.ssid);
     }
     else
     {
+#if ENABLE_DEBUG_PRINT
         printf("[WIFI] disconnected from %s\n", last_Info.ssid);
+#endif
         main_page_redraw_wifissid("No WiFi Conneted");
     }
     memcpy(&last_Info, &wifiInfo, sizeof(esp_wifi_info_t));
 }
+
+#if (ENABLE_LVGL_USE == 0)
 static void time_update(void)
 {
     static rtc_time_t last_time = {0};
-
-    if (time_update_delay > 0)
-        return;
-
-    time_update_delay = TIME_UPDATE_INTERNAL;
-
+    xTimerChangePeriod(time_update_timer, pdMS_TO_TICKS(TIME_UPDATE_INTERVAL), 0);
     rtc_time_t current_time;
     rtc_get_time(&current_time);
 
@@ -192,23 +173,37 @@ static void time_update(void)
     main_page_redraw_time(&current_time, is2sec, refresh);
     main_page_redraw_date(&current_time, refresh);
 }
+
+#endif
+
+static float current_inner_temp = 0.0f;
+static float current_inner_hum = 0.0f;
+
+void get_current_inner_env(float *temp, float *hum)
+{
+    if (temp)
+        *temp = current_inner_temp;
+    if (hum)
+        *hum = current_inner_hum;
+}
+
 static void inner_update(void)
 {
     static float last_temperature, last_humidity;
-
-    if (inner_update_delay > 0)
-        return;
-
-    inner_update_delay = INNER_UPDATE_INTERNAL;
+    xTimerChangePeriod(inner_update_timer, pdMS_TO_TICKS(INNER_UPDATE_INTERVAL), 0);
 
     if (!aht20_start_measurement())
     {
+#if ENABLE_DEBUG_PRINT
         printf("[AHT20] start measurement failed\n");
+#endif
         return;
     }
     if (!aht20_wait_for_measurement())
     {
+#if ENABLE_DEBUG_PRINT
         printf("[AHT20] wait for measurement failed\n");
+#endif
         return;
     }
 
@@ -216,7 +211,9 @@ static void inner_update(void)
 
     if (!aht20_read_measurement(&temperature, &humidity))
     {
+#if ENABLE_DEBUG_PRINT
         printf("[AHT20] read measurement failed\n");
+#endif
         return;
     }
     if (temperature == last_temperature && humidity == last_humidity)
@@ -224,75 +221,156 @@ static void inner_update(void)
 
     last_temperature = temperature;
     last_humidity = humidity;
-
+    current_inner_temp = temperature;
+    current_inner_hum = humidity;
+#if ENABLE_DEBUG_PRINT
     printf("[AHT20] Temperature: %.1f, Humidity: %.1f\n", temperature,
            humidity);
+#endif
     main_page_redraw_inner_temperature(temperature);
     main_page_redraw_inner_humidity(humidity);
 }
-bool outdoor_update(void)
-{
-    static weather_Info_t last_weather = {0};
-    uint8_t retry_cnt = 0;
-    if (outdoor_update_delay > 0)
-        return false;
+static weather_Info_t current_weather_info = {0};
 
-    outdoor_update_delay = OUTDOOR_UPDATE_INTERNAL;
+void get_current_weather_info(weather_Info_t *info)
+{
+    if (info)
+    {
+        memcpy(info, &current_weather_info, sizeof(weather_Info_t));
+    }
+}
+
+static void outdoor_update(void)
+{
+    const char *weather_url = "https://api.weatherapi.com/v1/current.json?key=24f551dd292c4927850130628260903&q=auto:ip&lang=zh_cn";
+    // const char *weather_url = "https://api.weatherapi.com/v1/forecast.json?key=24f551dd292c4927850130628260903&q=auto:ip&days=1&aqi=no&alerts=no";
+    //  xTimerChangePeriod(outdoor_update_timer, pdMS_TO_TICKS(OUTDOOR_UPDATE_INTERVAL), 0);
+    static weather_Info_t last_weather = {0};
 
     weather_Info_t weather = {0};
-    const char *weather_url =
-        "http://api.weatherapi.com/v1/current.json?key=24f551dd292c4927850130628260903&q=auto:ip&lang=zh_cn";
-    char weather_http_response[1000];
-    if (!esp_at_http_get(weather_url, weather_http_response,
-                         sizeof(weather_http_response)))
+    const char *weather_http_response = esp_at_http_get(weather_url);
+    if (weather_http_response == NULL)
     {
+#if ENABLE_DEBUG_PRINT
         printf("[WEATHER] http error\n");
-        return false;
+#endif
+        xTimerChangePeriod(outdoor_update_timer, pdMS_TO_TICKS(SECONDS(5)), 0);
+        return;
     }
-    while (strstr(weather_http_response, "busy") != NULL)
-    {
-        memset(weather_http_response, 0, sizeof(weather_http_response));
-        clear_usart_buffer();
-        esp_at_http_get(weather_url, weather_http_response, sizeof(weather_http_response));
-        retry_cnt++;
-        printf("[Weather Retry] %d\n", retry_cnt);
-        if (retry_cnt > 3)
-            break;
-    }
-    retry_cnt = 0;
     if (!parse_WeatherAPI(weather_http_response, &weather))
     {
+#if ENABLE_DEBUG_PRINT
         printf("[WEATHER] parse failed\n");
-        return false;
+#endif
+        xTimerChangePeriod(outdoor_update_timer, pdMS_TO_TICKS(SECONDS(5)), 0);
+        return;
     }
+    xTimerChangePeriod(outdoor_update_timer, pdMS_TO_TICKS(OUTDOOR_UPDATE_INTERVAL), 0);
     if (memcmp(&last_weather, &weather, sizeof(weather_Info_t)) == 0)
-    {
-        printf("[WEATHER] Info: %s, %s, temp: %s \n", weather.city,
-               weather.weather, weather.temperature);
-        return false;
-    }
-
-    main_page_redraw_outdoor_temperature(weather.temperature);
-    main_page_redraw_outdoor_weather_icon(weather.weather, isNight);
-    if (strcmp(last_weather.city, weather.city) != 0)
-        main_page_redraw_outdoor_city(weather.city);
+        return;
 
     memcpy(&last_weather, &weather, sizeof(weather_Info_t));
-    printf("[WEATHER] UI update %s, %s, temp: %s \n", weather.city,
+    memcpy(&current_weather_info, &weather, sizeof(weather_Info_t));
+#if ENABLE_DEBUG_PRINT
+    printf("[WEATHER] %s, %s, %s\n", weather.city, weather.weather, weather.temperature);
+#endif
+
+    main_page_redraw_outdoor_city(weather.city);
+    main_page_redraw_outdoor_temperature(weather.temperature);
+    // main_page_redraw_outdoor_weather_icon(weather.weather, isNight);
+    memcpy(&last_weather, &weather, sizeof(weather_Info_t));
+#if ENABLE_DEBUG_PRINT
+    printf("[WEATHER] UI update: %s, %s, temp: %s \n", weather.city,
            weather.weather, weather.temperature);
-    return true;
+#endif
+    // return true;
+}
+
+void main_loop(void) // 未使用该函数
+{
+    time_sync();
+    wifi_update();
+    inner_update();
+    outdoor_update();
+#if (ENABLE_LVGL_USE == 0)
+    time_update();
+#endif
+}
+
+static void mloop_func(void *param)
+{
+    uint32_t event;
+    while (1)
+    {
+        // 阻塞等待任务通知，没有事件时任务让出CPU不占用资源
+        event = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        if (event & MLOOP_EVENT_TIME_SYNC)
+            time_sync();
+        else if (event & MLOOP_EVENT_WIFI_UPDATE)
+            wifi_update();
+        else if (event & MLOOP_EVENT_INNER_UPDATE)
+            inner_update();
+        else if (event & MLOOP_EVENT_OUTDOOR_UPDATE)
+            outdoor_update();
+#if (ENABLE_LVGL_USE == 0)
+        if (event & MLOOP_EVENT_TIME_UPDATE)
+            time_update();
+#endif
+    }
+}
+
+static void mloop_timer_callback(TimerHandle_t time1) // 周期性调用
+{
+    uint32_t event = (uint32_t)pvTimerGetTimerID(time1); // 获取软件定时器ID
+    xTaskNotify(mloop_task, event, eSetBits);
 }
 
 void main_loop_Init(void)
 {
-    cpu_register_periodic_callback(cpu_periodic_callback);
-}
+#if (ENABLE_LVGL_USE == 1)
+    if (xGuiMutex != NULL && xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+    {
+        main_page_display();
+        xSemaphoreGive(xGuiMutex);
+    }
+#elif (ENABLE_LVGL_USE == 0)
+    main_page_display();
+#endif
+    time_sync_timer = xTimerCreate("time_sync",
+                                   1,
+                                   pdFALSE,
+                                   (void *)MLOOP_EVENT_TIME_SYNC,
+                                   mloop_timer_callback);
+    wifi_update_timer = xTimerCreate("wifi_update",
+                                     pdMS_TO_TICKS(1),
+                                     pdTRUE,
+                                     (void *)MLOOP_EVENT_WIFI_UPDATE,
+                                     mloop_timer_callback);
+    inner_update_timer = xTimerCreate("inner_update",
+                                      pdMS_TO_TICKS(1),
+                                      pdTRUE,
+                                      (void *)MLOOP_EVENT_INNER_UPDATE,
+                                      mloop_timer_callback);
 
-void main_loop(void)
-{
-    time_sync();
-    wifi_update();
-    time_update();
-    inner_update();
-    outdoor_update();
+    outdoor_update_timer = xTimerCreate("outdoor_update",
+                                        pdMS_TO_TICKS(1),
+                                        pdTRUE,
+                                        (void *)MLOOP_EVENT_OUTDOOR_UPDATE,
+                                        mloop_timer_callback);
+#if (ENABLE_LVGL_USE == 0)
+    time_update_timer = xTimerCreate("time update",
+                                     pdMS_TO_TICKS(TIME_UPDATE_INTERVAL),
+                                     pdTRUE,
+                                     (void *)MLOOP_EVENT_TIME_UPDATE,
+                                     mloop_timer_callback);
+#endif
+    xTaskCreate(mloop_func, "mloop", 4096, NULL, 5, &mloop_task);
+    xTaskNotify(mloop_task, MLOOP_EVENT_ALL, eSetBits);
+
+    xTimerStart(wifi_update_timer, 0);
+    xTimerStart(inner_update_timer, 0);
+    xTimerStart(outdoor_update_timer, 0);
+#if (ENABLE_LVGL_USE == 0)
+    xTimerStart(time_update_timer, 0);
+#endif
 }

@@ -3,14 +3,297 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
 #include "esp_at.h"
 #include "board.h"
-#include "delay.h"
 #include "led.h"
 #include "stm32f4xx.h"
 #include "usart.h"
+#include "dma.h"
 #include "tim.h"
+
 #define RING_BUFFER_SIZE 1024
+// 1.0是裸机版本，2.0是FreeRTOS的版本
+#if (version == 2)
+
+#define ESP_AT_DEBUG    0
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+typedef enum
+{
+    AT_ACK_NONE,
+    AT_ACK_OK,
+    AT_ACK_ERROR,
+    AT_ACK_BUSY,
+    AT_ACK_READY,
+} at_ack_t;
+typedef struct
+{
+    at_ack_t ack;
+    const char *string;
+} at_ack_match_t;
+static const at_ack_match_t at_ack_matches[] =
+    {
+        {AT_ACK_OK, "OK\r\n"},
+        {AT_ACK_ERROR, "ERROR\r\n"},
+        {AT_ACK_BUSY, "busy p\r\n"},
+        {AT_ACK_READY, "ready\r\n"},
+};
+
+static at_ack_t rxack;
+static SemaphoreHandle_t at_ack_sempahore;
+static char *rxline;
+static char rxbuf[2048];
+static uint32_t rxlen;
+
+static bool esp_at_write_command(const char *command, uint32_t timeout);
+static bool esp_at_wait_boot(uint32_t timeout);
+static bool esp_at_wait_ready(uint32_t timeout);
+
+static at_ack_t match_internal_ack(const char *str)
+{
+    for (uint32_t i = 0; i < ARRAY_SIZE(at_ack_matches); i++)
+    {
+        if (strstr(str, at_ack_matches[i].string) != NULL)
+            return at_ack_matches[i].ack;
+    }
+    return AT_ACK_NONE;
+}
+static void esp_at_usart_write(const char *data)
+{
+    uint32_t len = strlen(data);
+
+    DMA_Cmd(DMA1_Stream6, DISABLE);
+
+    while (DMA_GetCmdStatus(DMA1_Stream6) != DISABLE)
+        ;
+    DMA1_Stream6->M0AR = (uint32_t)data;
+    DMA1_Stream6->NDTR = len;
+
+    DMA_ClearFlag(DMA1_Stream6, DMA_FLAG_TCIF6);
+    DMA_Cmd(DMA1_Stream6, ENABLE);
+}
+static at_ack_t esp_at_usart_wait_receive(uint32_t timeout)
+{
+    rxlen = 0;
+    rxline = rxbuf;
+    bool acked = xSemaphoreTake(at_ack_sempahore, pdMS_TO_TICKS(timeout)) == pdPASS;
+    return acked ? rxack : AT_ACK_NONE;
+}
+static bool esp_at_wait_ready(uint32_t timeout)
+{
+    return esp_at_usart_wait_receive(timeout) == AT_ACK_READY;
+}
+static void esp_at_lowlevel_init(void)
+{
+    usart2_Init();
+    ESP_DMA_Init();
+}
+bool esp_at_init(void)
+{
+    at_ack_sempahore = xSemaphoreCreateBinary();
+    configASSERT(at_ack_sempahore);
+
+    esp_at_lowlevel_init();
+
+    if (!esp_at_wait_boot(3000))
+        return false;
+    if (!esp_at_write_command("AT+RESTORE\r\n", 2000))
+        return false;
+    if (!esp_at_wait_ready(5000))
+        return false;
+
+    return true;
+}
+static bool esp_at_write_command(const char *command, uint32_t timeout)
+{
+#if ESP_AT_DEBUG
+    printf("[DEBUG] Send: %s\n", command);
+#endif
+
+    esp_at_usart_write(command);
+    at_ack_t ack = esp_at_usart_wait_receive(timeout);
+
+#if ESP_AT_DEBUG
+    printf("[DEBUG] Response:\n%s\n", rxbuf);
+#endif
+
+    return ack == AT_ACK_OK;
+}
+static const char *esp_at_get_response(void)
+{
+    return rxbuf;
+}
+static bool esp_at_wait_boot(uint32_t timeout)
+{
+    for (int t = 0; t < timeout; t += 100)
+    {
+        if (esp_at_write_command("AT\r\n", 100))
+            return true;
+    }
+
+    return false;
+}
+bool esp_at_WiFi_Init(void)
+{
+    return esp_at_write_command("AT+CWMODE=1\r\n", 2000);
+}
+bool esp_at_connect_wifi(const char *ssid, const char *pwd, const char *mac)
+{
+    if (ssid == NULL || pwd == NULL)
+        return false;
+
+    char *cmd = rxbuf;
+    int len = snprintf(cmd, sizeof(rxbuf), "AT+CWJAP=\"%s\",\"%s\"\r\n", ssid, pwd);
+    if (mac)
+        snprintf(cmd + len, sizeof(rxbuf) - len, ",\"%s\"", mac);
+
+    return esp_at_write_command(cmd, 5000);
+}
+static bool parse_cwstate_response(const char *response, esp_wifi_info_t *info)
+{
+    //    AT+CWSTATE?
+    //    +CWSTATE:2,"Xiaomi Mi MIX 3_5577"
+
+    //    OK
+    response = strstr(response, "+CWSTATE:");
+    if (response == NULL)
+        return false;
+
+    int wifi_state;
+    if (sscanf(response, "+CWSTATE:%d,\"%63[^\"]", &wifi_state, info->ssid) != 2)
+        return false;
+
+    info->isConnect = (wifi_state == 2);
+
+    return true;
+}
+static bool parse_cwjap_response(const char *response, esp_wifi_info_t *info)
+{
+    response = strstr(response, "+CWJAP:");
+    if (response == NULL)
+        return false;
+
+    if (sscanf(response, "+CWJAP:\"%63[^\"]\",\"%17[^\"]\",%d", info->ssid, info->mac, &info->rssi) != 3)
+        return false;
+
+    return true;
+}
+bool esp_at_get_wifi_info(esp_wifi_info_t *info)
+{
+    if (!esp_at_write_command("AT+CWSTATE?\r\n", 2000))
+        return false;
+
+    if (!parse_cwstate_response(esp_at_get_response(), info))
+        return false;
+
+    if (info->isConnect == true)
+    {
+        if (!esp_at_write_command("AT+CWJAP?\r\n", 2000))
+            return false;
+
+        if (!parse_cwjap_response(esp_at_get_response(), info))
+            return false;
+    }
+
+    return true;
+}
+bool wifi_is_connected(void)
+{
+    esp_wifi_info_t info;
+    if (esp_at_get_wifi_info(&info))
+        return info.isConnect;
+    return false;
+}
+bool esp_at_sntp_Init(void)
+{
+    if (!esp_at_write_command("AT+CIPSNTPCFG=1,8\r\n", 2000))
+        return false;
+
+    return true;
+}
+static bool parse_cipsntptime_response(const char *response, time_Info_t *date)
+{
+    //	AT+CIPSNTPTIME?
+    //	+CIPSNTPTIME:Sun Jul 27 14:07:19 2025
+    //	OK
+    char weekday_str[8];
+    char month_str[4];
+    response = strstr(response, "+CIPSNTPTIME:");
+    if (sscanf(response, "+CIPSNTPTIME:%3s %3s %hhu %hhu:%hhu:%hhu %4s",
+               weekday_str, month_str,
+               &date->day, &date->hour, &date->min, &date->sec, &date->year) != 7)
+        return false;
+
+    strcpy(date->weekday, weekday_str);
+    strcpy(date->month, month_str);
+    // date->weekday = weekday_str;
+    // date->month = month_str;
+
+    return true;
+}
+bool esp_at_sntp_get_time(time_Info_t *date)
+{
+    if (!esp_at_write_command("AT+CIPSNTPTIME?\r\n", 2000))
+        return false;
+
+    if (!parse_cipsntptime_response(esp_at_get_response(), date))
+        return false;
+
+    return true;
+}
+const char *esp_at_http_get(const char *url)
+{
+    //    AT+HTTPCLIENT=2,1,"https://api.seniverse.com/v3/weather/now.json?key=SfRic8Wmp-Qh3OeFk&location=WTEMH46Z5N09&language=en&unit=c",,,2
+    //    +HTTPCLIENT:261,{"results"...]}
+
+    //    OK
+    // char *txbuf = rxbuf;
+    static char txbuf[1024];
+    bool ret;
+    ret = esp_at_write_command("ATE0\r\n", 8000);
+    // bool ret;
+    // snprintf(txbuf, sizeof(txbuf), "AT+HTTPCLIENT=2,1,\"%s\",,,2\r\n", url);
+    snprintf(txbuf, sizeof(txbuf), "AT+HTTPCLIENT=2,1,\"%s\",,,2\r\n", url);
+    ret = esp_at_write_command(txbuf, 8000);
+    // printf("%s\r\n", rxbuf);
+    return ret ? rxbuf : NULL;
+}
+
+void USART2_IRQHandler(void)
+{
+    if (USART_GetITStatus(USART2, USART_IT_RXNE) != RESET || USART_GetFlagStatus(USART2, USART_FLAG_ORE) != RESET)
+    {
+        uint8_t rx_data = USART_ReceiveData(USART2);
+        if (rxlen < sizeof(rxbuf) - 1)
+        {
+            rxbuf[rxlen++] = USART_ReceiveData(USART2);
+            if (rxbuf[rxlen - 1] == '\n')
+            {
+                rxbuf[rxlen] = '\0';
+                if ((rxbuf + rxlen - rxline) < 20)
+                {
+                    at_ack_t ack = match_internal_ack(rxline);
+                    if (ack != AT_ACK_NONE)
+                    {
+                        rxack = ack;
+                        BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+                        xSemaphoreGiveFromISR(at_ack_sempahore, &pxHigherPriorityTaskWoken);
+                        portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
+                    }
+                }
+                rxline = rxbuf + rxlen;
+            }
+        }
+
+        USART_ClearITPendingBit(USART2, USART_IT_RXNE);
+    }
+}
+
+#endif
+
+#if (version == 1)
 
 void usart2_sendByte(uint8_t data)
 {
@@ -19,7 +302,7 @@ void usart2_sendByte(uint8_t data)
     while (USART_GetFlagStatus(USART2, USART_FLAG_TC) == RESET)
         ;
 }
-void usart2_sendString(uint8_t *str) // 发送字符串
+void usart2_sendString(uint8_t *str)
 {
     clear_usart_buffer();
     uint8_t i = 0;
@@ -29,16 +312,6 @@ void usart2_sendString(uint8_t *str) // 发送字符串
         i++;
     }
 }
-// bool usart2_receiveByte_NonBlock(uint8_t *rx_data)
-// {
-//     if (USART_GetFlagStatus(USART2, USART_FLAG_RXNE) == SET)
-//     {
-//         *rx_data = USART_ReceiveData(USART2);
-//         return true;
-//     }
-//     else
-//         return false;
-// }
 bool esp_at_WiFi_Init(void)
 {
     char wifi_echo[100];
@@ -74,46 +347,11 @@ bool esp_connetWiFi(const char *ssid, const char *pwd, const char *mac)
     usart2_sendString((uint8_t *)cmd);
     return true;
 }
-/*
-AT+CWSTATE?
-+CWSTATE:2,"vivo50"
-
-OK
-
-AT+CWJAP?
-+CWJAP:"vivo50","3a:c0:19:16:d4:00",11,-33,0,1,3,0,1
-
-OK
-
-{
-    "results": [
-        {
-            "location": {
-                "id": "WSSU6EXX52RE",
-                "name": "Fuzhou",
-                "country": "CN",
-                "path": "Fuzhou,Fuzhou,Fujian,China",
-                "timezone": "Asia/Shanghai",
-                "timezone_offset": "+08:00"
-            },
-            "now": {
-                "text": "Cloudy",
-                "code": "4",
-                "temperature": "14"
-            },
-            "last_update": "2026-03-09T16:10:19+08:00"
-        }
-    ]
-}
-
-
-
-* */
 bool esp_at_http_get(const char *url, char *response, uint16_t response_len)
 {
     char txbuff[256];
     snprintf(txbuff, sizeof(txbuff), "AT+HTTPCLIENT=2,1,\"%s\",,,2\r\n", url);
-    delay_ms(2);
+    vTaskDelay(pdMS_TO_TICKS(2));
     usart2_sendString((uint8_t *)txbuff);
     memset(response, 0, response_len);
     int echoLen = usart2_receiveString(response, response_len, 2000);
@@ -124,7 +362,6 @@ bool esp_at_sntp_Init(void)
     char echo[20];
     memset(echo, 0, 20);
     usart2_sendString("AT+CIPSNTPCFG=1,8\r\n"); // 设置东8区
-    // delay_ms(2);
     usart2_receiveString(echo, 20, 2000);
     if (!strstr(echo, "+TIME_UPDATED"))
         return false;
@@ -167,9 +404,79 @@ bool parse_CWJAP(const char *response, esp_wifi_info_t *info)
 
     return true;
 }
+bool esp_get_wifi_info(esp_wifi_info_t *info)
+{
+    char echo[100];
+    memset(echo, 0, 100);
+    usart2_sendString("AT+CWSTATE?\r\n");
+    if (usart2_receiveString(echo, 100, 100) == 0)
+        return false;
+    if (!parse_CWSTATE(echo, info))
+        return false;
+    if (info->isConnect == true)
+    {
+        memset(echo, 0, 100);
+        usart2_sendString("AT+CWJAP?\r\n");
+        if (usart2_receiveString(echo, 100, 100) == 0)
+            return false;
+        if (!parse_CWJAP(echo, info))
+            return false;
+    }
+    return true;
+}
+bool esp_sntp_get(time_Info_t *timeinfo)
+{
+    char echo[100];
+    // esp_at_sntp_Init();
+    memset(echo, 0, sizeof(echo));
+    usart2_sendString("AT+CIPSNTPTIME?\r\n");
+    int len = usart2_receiveString(echo, sizeof(echo), 100);
+    if (parse_CIPSNTPTIME(echo, timeinfo))
+        return true;
+    return false;
+}
+void clear_usart_buffer(void)
+{
+    rx_buffer.head = 0;
+    rx_buffer.tail = 0;
+}
+
+void ring_buffer_push(uint8_t data)
+{
+    uint16_t next_head = (rx_buffer.head + 1) % RING_BUFFER_SIZE;
+    if (next_head != rx_buffer.tail)
+    {
+        rx_buffer.buffer[rx_buffer.head] = data;
+        rx_buffer.head = next_head;
+    }
+}
+bool ring_buffer_pop(uint8_t *data)
+{
+    if (rx_buffer.head == rx_buffer.tail)
+    {
+        return false;
+    }
+    *data = rx_buffer.buffer[rx_buffer.tail];
+    rx_buffer.tail = (rx_buffer.tail + 1) % RING_BUFFER_SIZE;
+    return true;
+}
+void USART2_IRQHandler(void)
+{
+    if (USART_GetITStatus(USART2, USART_IT_RXNE) != RESET)
+    {
+        uint8_t rx_data = USART_ReceiveData(USART2);
+        ring_buffer_push(rx_data);
+        USART_ClearITPendingBit(USART2, USART_IT_RXNE);
+    }
+}
+
+#endif
+
 bool parse_WeatherAPI(const char *response, weather_Info_t *info) // 解析WeatherAPI返回的额JSON数据
 {
-    // printf("=========%s=======\r\n", response);
+#if ESP_AT_DEBUG
+    printf("=========%s=======\r\n", response);
+#endif
     const char *location = strstr(response, "\"location\":");
     if (location == NULL)
         return false;
@@ -213,7 +520,7 @@ bool parse_WeatherAPI(const char *response, weather_Info_t *info) // 解析Weath
     const char *now_code = strstr(current, "\"code\":");
     if (now_code)
     {
-        uint16_t temp_code;
+        int temp_code;
         if (sscanf(now_code, "\"code\": %d", &temp_code) == 1)
             sprintf(info->weather_code, "%d", temp_code);
         else
@@ -223,6 +530,7 @@ bool parse_WeatherAPI(const char *response, weather_Info_t *info) // 解析Weath
         strcpy(info->weather_code, "ERROR");
     return true;
 }
+
 bool parse_WeatherSenstive(const char *response, weather_Info_t *info) // 解析心知天气返回的额JSON数据
 {
     response = strstr(response, "\"results\":");
@@ -265,35 +573,4 @@ bool parse_WeatherSenstive(const char *response, weather_Info_t *info) // 解析
     else
         strcpy(info->temperature, "ERROR");
     return true;
-}
-bool esp_get_wifi_info(esp_wifi_info_t *info)
-{
-    char echo[100];
-    memset(echo, 0, 100);
-    usart2_sendString("AT+CWSTATE?\r\n");
-    if (usart2_receiveString(echo, 100, 100) == 0)
-        return false;
-    if (!parse_CWSTATE(echo, info))
-        return false;
-    if (info->isConnect == true)
-    {
-        memset(echo, 0, 100);
-        usart2_sendString("AT+CWJAP?\r\n");
-        if (usart2_receiveString(echo, 100, 100) == 0)
-            return false;
-        if (!parse_CWJAP(echo, info))
-            return false;
-    }
-    return true;
-}
-bool esp_sntp_get(time_Info_t *timeinfo)
-{
-    char echo[100];
-    // esp_at_sntp_Init();
-    memset(echo, 0, sizeof(echo));
-    usart2_sendString("AT+CIPSNTPTIME?\r\n");
-    int len = usart2_receiveString(echo, sizeof(echo), 100);
-    if (parse_CIPSNTPTIME(echo, timeinfo))
-        return true;
-    return false;
 }
