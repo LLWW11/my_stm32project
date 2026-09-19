@@ -8,6 +8,8 @@
 #include "lvgl.h"
 #include "TFT_LCD.h"
 #include "lv_port_disp.h"
+#include "w25q128_test.h"
+
 /*
 char str[] = "what are you doing now ?";
 char buffer[1000] = {0};
@@ -55,7 +57,7 @@ static void main_init(void *param)
 
     welcome_page_display();
     wifi_init();
-
+    w25q128_self_test(); //w25q128≤‚ ‘”√
     wait_wifi_connet();
     main_loop_Init();
     vTaskDelete(NULL);

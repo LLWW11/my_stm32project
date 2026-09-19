@@ -20,6 +20,8 @@ virtualFolder:
         - path: ../app/app_ui.c
         - path: ../app/app_ui.h
         - path: ../app/dbg_config.h
+        - path: ../app/w25q128_test.c
+        - path: ../app/w25q128_test.h
       folders:
         - name: font
           files:

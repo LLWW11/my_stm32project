@@ -11,7 +11,8 @@
 #include "led_describe.h"
 #include "tim.h"
 #include "usart.h"
-
+#include "SPI.h"
+#include "w25q128_test.h"
 static struct led_desc led0 = {GPIOF, GPIO_Pin_9, Bit_RESET, Bit_SET};
 static struct led_desc led1 = {GPIOF, GPIO_Pin_10, Bit_RESET, Bit_SET};
 
@@ -57,6 +58,7 @@ void board_Init(void)
 
     USART_ReceiveData(USART2); // 清空上电时的串口接收寄存器杂乱数据
     TIM2_init();
+    SPI3_Init();
     led_init(pled1);
 
     vTaskDelay(pdMS_TO_TICKS(10));

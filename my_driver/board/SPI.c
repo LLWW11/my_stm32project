@@ -128,8 +128,17 @@ void SPI3_SendByte(uint8_t dat)
         ;
 }
 
-// void SPI1_Wait_Busy(void)
-// {
-//     while (!SPI_GetFlagStatus(SPI1, SPI_FLAG_TXE));
-//     while (SPI_GetFlagStatus(SPI1, SPI_FLAG_BSY) == SET);
-// }
+/* 通过 SPI3 全双工发送一个字节，并返回同时接收到的字节。 */
+uint8_t SPI3_ReadWriteByte(uint8_t dat)
+{
+    while (!SPI_GetFlagStatus(SPI3, SPI_FLAG_TXE))
+    {
+        ;
+    }
+    SPI_SendData(SPI3, dat);
+    while (!SPI_GetFlagStatus(SPI3, SPI_FLAG_RXNE))
+    {
+        ;
+    }
+    return (uint8_t)SPI_ReceiveData(SPI3);
+}
