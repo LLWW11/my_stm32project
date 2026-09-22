@@ -11,7 +11,7 @@
 //   APP 复位入口函数指针类型
 typedef void (*boot_app_entry_t)(void);
 
-//  简单轮询延时
+//  轮询延时
 static void boot_delay_ms(uint32_t milliseconds)
 {
     uint32_t reload_value;
@@ -57,7 +57,8 @@ static bool boot_app_is_valid(uint32_t *app_msp,
     if ((*app_msp == 0xFFFFFFFFU) ||(*app_reset_handler == 0xFFFFFFFFU))
         return false;
     // MSP是否合法
-    if ((*app_msp < BOOT_SRAM_START_ADDRESS) || (*app_msp > BOOT_SRAM_END_ADDRESS))
+    if ((*app_msp < BOOT_SRAM_START_ADDRESS) ||
+        (*app_msp > BOOT_SRAM_END_ADDRESS))
         return false;
     // Cortex-M 的栈要求至少按照 8 字节对齐
     if ((*app_msp & 0x7U) != 0U)
@@ -67,19 +68,17 @@ static bool boot_app_is_valid(uint32_t *app_msp,
         return false;
     // 真正的代码地址是否在APP FLASH区间
     reset_code_address = *app_reset_handler & ~0x1U;
-    if ((reset_code_address < BOOT_APP_BASE_ADDRESS) || (reset_code_address >= BOOT_APP_END_ADDRESS))
+    if ((reset_code_address < BOOT_APP_BASE_ADDRESS) || 
+        (reset_code_address >= BOOT_APP_END_ADDRESS))
         return false;
 
     return true;
 }
 
 
-/**
- * @brief 切换到 APP 的主栈并跳转到 APP 复位入口。
- * @param app_msp APP 初始主栈指针，通过 R0 传入。
- * @param app_reset_handler APP 复位入口，通过 R1 传入。
- * @note 本函数仅适用于当前 ARMCC5 工程，调用后不会返回。
- */
+
+// 切换到 APP 的主栈并跳转到 APP 复位入口
+
 __asm void boot_start_app(uint32_t app_msp,
                           uint32_t app_reset_handler)
 {
@@ -88,12 +87,7 @@ __asm void boot_start_app(uint32_t app_msp,
     BX R1
 }
 
-/**
- * @brief 清理 Bootloader 运行状态并跳转到 APP。
- * @param app_msp APP 初始主栈指针。
- * @param app_reset_handler APP 复位入口地址。
- * @note 本函数正常情况下不会返回。
- */
+//清理 Bootloader运行状态并跳转到 APP
 static void boot_jump_to_app(uint32_t app_msp,
                              uint32_t app_reset_handler)
 {
@@ -153,7 +147,11 @@ int main(void)
         boot_uart1_send_string("\r\n");
 
         boot_uart1_send_string("[BOOT] APP valid\r\n");
-
+ 
+        boot_uart1_send_string("[BOOT] Jump in 5...\r\n");
+        boot_delay_ms(1000U);        
+        boot_uart1_send_string("[BOOT] Jump in 4...\r\n");
+        boot_delay_ms(1000U);
         boot_uart1_send_string("[BOOT] Jump in 3...\r\n");
         boot_delay_ms(1000U);
 

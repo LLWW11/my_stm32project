@@ -38,8 +38,8 @@
 #define ENABLE_W25Q128_WRITE_TEST 1
 #endif
 
-#ifndef W25Q128_TEST_ADDRESS
-#define W25Q128_TEST_ADDRESS 0x00FFF000UL
-#endif
+// #ifndef W25Q128_TEST_ADDRESS
+// #define W25Q128_TEST_ADDRESS 0x00FFF000UL
+// #endif
 
 #endif

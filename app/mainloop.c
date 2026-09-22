@@ -82,7 +82,7 @@ static void time_sync(void)
             month = i + 1;
     }
     const char *weekday_tmp[] = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
-    for (uint8_t i = 0; i < 12; i++)
+    for (uint8_t i = 0; i < 7; i++)
     {
         if (strstr(esp_time.weekday, weekday_tmp[i]) != NULL)
             weekday = i + 1;
@@ -303,19 +303,22 @@ static void mloop_func(void *param)
     while (1)
     {
         // 阻塞等待任务通知，没有事件时任务让出CPU不占用资源
-        event = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        if (event & MLOOP_EVENT_TIME_SYNC)
-            time_sync();
-        else if (event & MLOOP_EVENT_WIFI_UPDATE)
-            wifi_update();
-        else if (event & MLOOP_EVENT_INNER_UPDATE)
-            inner_update();
-        else if (event & MLOOP_EVENT_OUTDOOR_UPDATE)
-            outdoor_update();
+        // event = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        if( xTaskNotifyWait(0,UINT32_MAX,&event,portMAX_DELAY) == pdTRUE )//进入等待时候不清楚任何位置
+        {
+            if (event & MLOOP_EVENT_TIME_SYNC)
+                time_sync();
+            if (event & MLOOP_EVENT_WIFI_UPDATE)
+                wifi_update();
+            if (event & MLOOP_EVENT_INNER_UPDATE)
+                inner_update();
+            if (event & MLOOP_EVENT_OUTDOOR_UPDATE)
+                outdoor_update();
 #if (ENABLE_LVGL_USE == 0)
-        if (event & MLOOP_EVENT_TIME_UPDATE)
-            time_update();
-#endif
+            if (event & MLOOP_EVENT_TIME_UPDATE)
+                time_update();
+#endif   
+        }
     }
 }
 
