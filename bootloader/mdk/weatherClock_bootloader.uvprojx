@@ -70,7 +70,7 @@
           <Cads>
             <interw>1</interw><Optim>1</Optim><oTime>0</oTime><SplitLS>0</SplitLS><OneElfS>1</OneElfS><Strict>0</Strict><EnumInt>0</EnumInt><PlainCh>0</PlainCh><Ropi>0</Ropi><Rwpi>0</Rwpi><wLevel>2</wLevel><uThumb>0</uThumb><uSurpInc>0</uSurpInc><uC99>1</uC99><uGnu>1</uGnu><useXO>0</useXO>
             <v6Lang>0</v6Lang><v6LangP>0</v6LangP><vShortEn>1</vShortEn><vShortWch>1</vShortWch><v6Lto>0</v6Lto><v6WtE>0</v6WtE><v6Rtti>0</v6Rtti>
-            <VariousControls><MiscControls></MiscControls><Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER,HSE_VALUE=8000000</Define><Undefine></Undefine><IncludePath>..\app;..\cmsis;..\..\firmware\cmsis\core;..\..\firmware\cmsis\device;..\..\firmware\driver\inc</IncludePath></VariousControls>
+            <VariousControls><MiscControls></MiscControls><Define>STM32F40_41xxx,USE_STDPERIPH_DRIVER,HSE_VALUE=8000000</Define><Undefine></Undefine><IncludePath>..\app;..\cmsis;..\..\firmware\cmsis\core;..\..\firmware\cmsis\device;..\..\firmware\driver\inc;..\..\my_driver;..\..\my_driver\board</IncludePath></VariousControls>
           </Cads>
           <Aads>
             <interw>1</interw><Ropi>0</Ropi><Rwpi>0</Rwpi><thumb>0</thumb><SplitLS>0</SplitLS><SwStkChk>0</SwStkChk><NoWarn>0</NoWarn><uSurpInc>0</uSurpInc><useXO>0</useXO><ClangAsOpt>1</ClangAsOpt>
@@ -80,7 +80,12 @@
         </TargetArmAds>
       </TargetOption>
       <Groups>
-        <Group><GroupName>Application</GroupName><Files><File><FileName>main.c</FileName><FileType>1</FileType><FilePath>..\app\main.c</FilePath></File></Files></Group>
+        <Group><GroupName>Application</GroupName><Files>
+          <File><FileName>main.c</FileName><FileType>1</FileType><FilePath>..\app\main.c</FilePath></File>
+          <File><FileName>boot_UART.c</FileName><FileType>1</FileType><FilePath>..\app\boot_UART.c</FilePath></File>
+          <File><FileName>boot_crc.c</FileName><FileType>1</FileType><FilePath>..\app\boot_crc.c</FilePath></File>
+          <File><FileName>boot_update.c</FileName><FileType>1</FileType><FilePath>..\app\boot_update.c</FilePath></File>
+        </Files></Group>
         <Group><GroupName>CMSIS</GroupName><Files>
           <File><FileName>startup_stm32f40_41xxx.s</FileName><FileType>2</FileType><FilePath>..\cmsis\startup_stm32f40_41xxx.s</FilePath></File>
           <File><FileName>system_stm32f4xx.c</FileName><FileType>1</FileType><FilePath>..\cmsis\system_stm32f4xx.c</FilePath></File>
@@ -90,6 +95,12 @@
           <File><FileName>stm32f4xx_gpio.c</FileName><FileType>1</FileType><FilePath>..\..\firmware\driver\src\stm32f4xx_gpio.c</FilePath></File>
           <File><FileName>stm32f4xx_rcc.c</FileName><FileType>1</FileType><FilePath>..\..\firmware\driver\src\stm32f4xx_rcc.c</FilePath></File>
           <File><FileName>stm32f4xx_usart.c</FileName><FileType>1</FileType><FilePath>..\..\firmware\driver\src\stm32f4xx_usart.c</FilePath></File>
+          <File><FileName>stm32f4xx_spi.c</FileName><FileType>1</FileType><FilePath>..\..\firmware\driver\src\stm32f4xx_spi.c</FilePath></File>
+          <File><FileName>stm32f4xx_flash.c</FileName><FileType>1</FileType><FilePath>..\..\firmware\driver\src\stm32f4xx_flash.c</FilePath></File>
+        </Files></Group>
+        <Group><GroupName>W25Q128</GroupName><Files>
+          <File><FileName>SPI.c</FileName><FileType>1</FileType><FilePath>..\..\my_driver\board\SPI.c</FilePath></File>
+          <File><FileName>25q128.c</FileName><FileType>1</FileType><FilePath>..\..\my_driver\25q128\25q128.c</FilePath></File>
         </Files></Group>
       </Groups>
     </Target>

@@ -82,4 +82,7 @@ void board_Init(void)
     AHT20_Init();
     // 这句话还是要的
     printf("[SYS] Build Date:%s %s\r\n", __DATE__, __TIME__);
+
+    // IAP 测试
+    printf("\r\n\r\n===========[SYS] OTA test version: v2===========[\r\n\r\n");
 }

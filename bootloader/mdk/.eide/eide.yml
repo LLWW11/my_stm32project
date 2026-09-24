@@ -13,6 +13,10 @@ virtualFolder:
         - path: ../app/main.c
         - path: ../app/boot_UART.c
         - path: ../app/boot_UART.h
+        - path: ../app/boot_crc.c
+        - path: ../app/boot_crc.h
+        - path: ../app/boot_update.c
+        - path: ../app/boot_update.h
       folders: []
     - name: CMSIS
       files:
@@ -25,6 +29,13 @@ virtualFolder:
         - path: ../../firmware/driver/src/stm32f4xx_gpio.c
         - path: ../../firmware/driver/src/stm32f4xx_rcc.c
         - path: ../../firmware/driver/src/stm32f4xx_usart.c
+        - path: ../../firmware/driver/src/stm32f4xx_spi.c
+        - path: ../../firmware/driver/src/stm32f4xx_flash.c
+      folders: []
+    - name: W25Q128
+      files:
+        - path: ../../my_driver/board/SPI.c
+        - path: ../../my_driver/25q128/25q128.c
       folders: []
 dependenceList: []
 outDir: build
@@ -43,6 +54,8 @@ targets:
         - ../../firmware/cmsis/core
         - ../../firmware/cmsis/device
         - ../../firmware/driver/inc
+        - ../../my_driver
+        - ../../my_driver/board
         - .cmsis/include
         - RTE/_f407_boot
       libList:

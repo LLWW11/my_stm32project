@@ -35,7 +35,7 @@
  * 注意：启用前必须确认末尾 4 KiB 没有业务数据
  * ======================================== */
 #ifndef ENABLE_W25Q128_WRITE_TEST
-#define ENABLE_W25Q128_WRITE_TEST 1
+#define ENABLE_W25Q128_WRITE_TEST 0
 #endif
 
 // #ifndef W25Q128_TEST_ADDRESS

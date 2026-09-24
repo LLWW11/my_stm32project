@@ -1,4 +1,7 @@
 #include "stm32f4xx.h"
+#include "boot_UART.h"
+
+/** 初始化 USART1 的 PA9/PA10、115200、8N1。 */
 void boot_uart1_init(void)
 {
     GPIO_InitTypeDef gpio_init;
@@ -31,7 +34,7 @@ void boot_uart1_init(void)
 }
 
 
-// USART1 阻塞发送一个字节
+/** 阻塞发送 USART1 的一个字节。 */
 void boot_uart1_send_byte(uint8_t data)
 {
     while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
@@ -39,7 +42,7 @@ void boot_uart1_send_byte(uint8_t data)
     USART_SendData(USART1, data);
 }
 
-//通过 USART1 阻塞发送一个以空字符结尾的字符串
+/** 发送一个以空字符结尾的字符串，并等待末字节完成。 */
 void boot_uart1_send_string(const char *text)
 {
     while (*text != '\0')
@@ -51,7 +54,7 @@ void boot_uart1_send_string(const char *text)
     while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
 }
 
-//通过 USART1 以十六进制形式发送一个 32 位数据
+/** 以十六进制形式发送 32 位数据。 */
 void boot_uart1_send_hex32(uint32_t value)
 {
     static const char hex_table[] = "0123456789ABCDEF";
@@ -64,4 +67,58 @@ void boot_uart1_send_hex32(uint32_t value)
         uint8_t index = (uint8_t)((value >> shift) & 0x0FU);
         boot_uart1_send_byte((uint8_t)hex_table[index]);
     }
+}
+
+/** 非阻塞读取 USART1 的一个字节，同时清除接收溢出状态。 */
+uint8_t boot_uart1_try_read(uint8_t *data)
+{
+    if (data == 0)
+        return 0U;
+
+    if (USART_GetFlagStatus(USART1, USART_FLAG_RXNE) == SET)
+    {
+        *data = (uint8_t)USART_ReceiveData(USART1);
+        return 1U;
+    }
+
+    if (USART_GetFlagStatus(USART1, USART_FLAG_ORE) == SET)
+    {
+        (void)USART_ReceiveData(USART1);
+    }
+
+    return 0U;
+}
+
+/** 使用 SysTick 轮询 USART1，超过 timeout_ms 毫秒时返回失败。 */
+uint8_t boot_uart1_read_timeout(uint8_t *data, uint32_t timeout_ms)
+{
+    uint32_t reload;
+    uint32_t elapsed;
+
+    if ((data == 0) || (timeout_ms == 0U))
+        return 0U;
+
+    reload = SystemCoreClock / 1000U;
+    if ((reload == 0U) || ((reload - 1U) > SysTick_LOAD_RELOAD_Msk))
+        return 0U;
+
+    SysTick->LOAD = reload - 1U;
+    SysTick->VAL = 0U;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+
+    elapsed = 0U;
+    while (elapsed < timeout_ms)
+    {
+        if (boot_uart1_try_read(data) != 0U)
+        {
+            SysTick->CTRL = 0U;
+            return 1U;
+        }
+
+        if ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) != 0U)
+            elapsed++;
+    }
+
+    SysTick->CTRL = 0U;
+    return 0U;
 }

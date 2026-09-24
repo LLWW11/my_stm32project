@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "boot_UART.h"
+#include "boot_update.h"
 
 #define BOOT_APP_BASE_ADDRESS   0x08010000U// WeatherClock APP在内部Flash的起始地址
 #define BOOT_APP_END_ADDRESS    0x08100000U// APP 分区结束地址，不包含该地址本身
@@ -94,6 +95,7 @@ static void boot_jump_to_app(uint32_t app_msp,
     uint32_t index;
 
     USART_Cmd(USART1, DISABLE); //关闭UART1
+    SPI_Cmd(SPI3, DISABLE); // APP 将重新初始化连接 W25Q128 的 SPI3
     __disable_irq(); //关闭中断
     // 关闭并复位 SysTick 和 PendSV
     SysTick->CTRL = 0U;
@@ -126,15 +128,49 @@ static void boot_jump_to_app(uint32_t app_msp,
 }
 
 
-//Bootloader 程序入口。
+/** 在指定毫秒数内监听命令 U；0 表示一直等待。 */
+static bool boot_listen_for_update(uint32_t milliseconds)
+{
+    uint32_t elapsed = 0U;
+    uint8_t command;
+
+    while ((milliseconds == 0U) || (elapsed < milliseconds))
+    {
+        if ((boot_uart1_try_read(&command) != 0U) && (command == 'U'))
+        {
+            boot_uart1_send_string("[BOOT] Update requested\r\n");
+            boot_update_receive();
+            return true;
+        }
+
+        boot_delay_ms(1U);
+        elapsed++;
+    }
+
+    return false;
+}
+
+/** Bootloader 主入口：优先安装 READY 镜像，再监听升级请求并跳转 APP。 */
 int main(void)
 {
     uint32_t app_msp;
     uint32_t app_reset_handler;
+    boot_update_result_t update_result;
 
     boot_uart1_init();
 
     boot_uart1_send_string("\r\n[BOOT] Bootloader start\r\n");
+    boot_uart1_send_string("[BOOT] W25 UART updater WUP1\r\n");
+
+    update_result = boot_update_install_pending();
+    if (update_result == BOOT_UPDATE_INSTALLED)
+        NVIC_SystemReset();
+    if (update_result == BOOT_UPDATE_FAILED)
+    {
+        boot_uart1_send_string("[BOOT] Send U to stage a new BIN\r\n");
+        while (1)
+            (void)boot_listen_for_update(0U);
+    }
 
     if (boot_app_is_valid(&app_msp, &app_reset_handler))
     {
@@ -147,19 +183,25 @@ int main(void)
         boot_uart1_send_string("\r\n");
 
         boot_uart1_send_string("[BOOT] APP valid\r\n");
+        boot_uart1_send_string("[BOOT] Send U now to update\r\n");
  
         boot_uart1_send_string("[BOOT] Jump in 5...\r\n");
-        boot_delay_ms(1000U);        
+        if (boot_listen_for_update(1000U))
+            goto wait_for_update;
         boot_uart1_send_string("[BOOT] Jump in 4...\r\n");
-        boot_delay_ms(1000U);
+        if (boot_listen_for_update(1000U))
+            goto wait_for_update;
         boot_uart1_send_string("[BOOT] Jump in 3...\r\n");
-        boot_delay_ms(1000U);
+        if (boot_listen_for_update(1000U))
+            goto wait_for_update;
 
         boot_uart1_send_string("[BOOT] Jump in 2...\r\n");
-        boot_delay_ms(1000U);
+        if (boot_listen_for_update(1000U))
+            goto wait_for_update;
 
         boot_uart1_send_string("[BOOT] Jump in 1...\r\n");
-        boot_delay_ms(1000U);
+        if (boot_listen_for_update(1000U))
+            goto wait_for_update;
 
         boot_uart1_send_string("[BOOT] Jump now\r\n");
 
@@ -168,9 +210,11 @@ int main(void)
     // APP 无效时留在 Bootloader
     boot_uart1_send_string("[BOOT] APP invalid\r\n");
     boot_uart1_send_string("[BOOT] Stay in bootloader\r\n");
+    boot_uart1_send_string("[BOOT] Send U now to update\r\n");
 
+wait_for_update:
     while (1)
     {
-        //正常情况下不会跑到到这里
+        (void)boot_listen_for_update(0U);
     }
 }
