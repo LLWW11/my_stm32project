@@ -4,6 +4,8 @@
 #include "boot_UART.h"
 #include "boot_update.h"
 
+// bootloader 地址  0x0800 0000 ~ 0x0800 FFFF
+//    主APP   地址  0x0801 0000 ~ 0x0810 0000
 #define BOOT_APP_BASE_ADDRESS   0x08010000U// WeatherClock APP在内部Flash的起始地址
 #define BOOT_APP_END_ADDRESS    0x08100000U// APP 分区结束地址，不包含该地址本身
 #define BOOT_SRAM_START_ADDRESS 0x20000000U //主SRAM起始地址
@@ -11,36 +13,6 @@
 
 //   APP 复位入口函数指针类型
 typedef void (*boot_app_entry_t)(void);
-
-//  轮询延时
-static void boot_delay_ms(uint32_t milliseconds)
-{
-    uint32_t reload_value;
-
-    reload_value = SystemCoreClock / 1000U;
-
-    if ((reload_value == 0U) ||
-        ((reload_value - 1U) > SysTick_LOAD_RELOAD_Msk))
-    {
-        return;
-    }
-
-    SysTick->LOAD = reload_value - 1U;
-    SysTick->VAL = 0U;
-    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk |
-                    SysTick_CTRL_ENABLE_Msk;
-
-    while (milliseconds > 0U)
-    {
-        while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0U);
-
-        milliseconds--;
-    }
-
-    SysTick->CTRL = 0U;
-    SysTick->LOAD = 0U;
-    SysTick->VAL = 0U;
-}
 
 //APP 向量表合法时返回 true
 static bool boot_app_is_valid(uint32_t *app_msp,
@@ -128,29 +100,7 @@ static void boot_jump_to_app(uint32_t app_msp,
 }
 
 
-/** 在指定毫秒数内监听命令 U；0 表示一直等待。 */
-static bool boot_listen_for_update(uint32_t milliseconds)
-{
-    uint32_t elapsed = 0U;
-    uint8_t command;
-
-    while ((milliseconds == 0U) || (elapsed < milliseconds))
-    {
-        if ((boot_uart1_try_read(&command) != 0U) && (command == 'U'))
-        {
-            boot_uart1_send_string("[BOOT] Update requested\r\n");
-            boot_update_receive();
-            return true;
-        }
-
-        boot_delay_ms(1U);
-        elapsed++;
-    }
-
-    return false;
-}
-
-/** Bootloader 主入口：优先安装 READY 镜像，再监听升级请求并跳转 APP。 */
+/** Bootloader 主入口：优先安装 READY 镜像，再检查并跳转 APP。 */
 int main(void)
 {
     uint32_t app_msp;
@@ -160,16 +110,18 @@ int main(void)
     boot_uart1_init();
 
     boot_uart1_send_string("\r\n[BOOT] Bootloader start\r\n");
-    boot_uart1_send_string("[BOOT] W25 UART updater WUP1\r\n");
+    boot_uart1_send_string("[BOOT] USART1 log output only\r\n");
 
     update_result = boot_update_install_pending();
     if (update_result == BOOT_UPDATE_INSTALLED)
         NVIC_SystemReset();
     if (update_result == BOOT_UPDATE_FAILED)
     {
-        boot_uart1_send_string("[BOOT] Send U to stage a new BIN\r\n");
+        boot_uart1_send_string("[BOOT] Restore W25 image and reset\r\n");
         while (1)
-            (void)boot_listen_for_update(0U);
+        {
+            // 安装失败后保留现场，由外部写入镜像并复位重试。
+        }
     }
 
     if (boot_app_is_valid(&app_msp, &app_reset_handler))
@@ -183,26 +135,6 @@ int main(void)
         boot_uart1_send_string("\r\n");
 
         boot_uart1_send_string("[BOOT] APP valid\r\n");
-        boot_uart1_send_string("[BOOT] Send U now to update\r\n");
- 
-        boot_uart1_send_string("[BOOT] Jump in 5...\r\n");
-        if (boot_listen_for_update(1000U))
-            goto wait_for_update;
-        boot_uart1_send_string("[BOOT] Jump in 4...\r\n");
-        if (boot_listen_for_update(1000U))
-            goto wait_for_update;
-        boot_uart1_send_string("[BOOT] Jump in 3...\r\n");
-        if (boot_listen_for_update(1000U))
-            goto wait_for_update;
-
-        boot_uart1_send_string("[BOOT] Jump in 2...\r\n");
-        if (boot_listen_for_update(1000U))
-            goto wait_for_update;
-
-        boot_uart1_send_string("[BOOT] Jump in 1...\r\n");
-        if (boot_listen_for_update(1000U))
-            goto wait_for_update;
-
         boot_uart1_send_string("[BOOT] Jump now\r\n");
 
         boot_jump_to_app(app_msp, app_reset_handler);
@@ -210,11 +142,10 @@ int main(void)
     // APP 无效时留在 Bootloader
     boot_uart1_send_string("[BOOT] APP invalid\r\n");
     boot_uart1_send_string("[BOOT] Stay in bootloader\r\n");
-    boot_uart1_send_string("[BOOT] Send U now to update\r\n");
+    boot_uart1_send_string("[BOOT] Restore W25 image and reset\r\n");
 
-wait_for_update:
     while (1)
     {
-        (void)boot_listen_for_update(0U);
+        // APP 无效时驻留，由外部写入镜像并复位重试。
     }
 }

@@ -12,7 +12,4 @@ typedef enum
 /** 检查 W25Q128 的 READY 镜像，并在需要时安装到内部 APP 分区。 */
 boot_update_result_t boot_update_install_pending(void);
 
-/** 经 USART1 接收 BIN，校验后暂存到 W25Q128 并复位。 */
-void boot_update_receive(void);
-
 #endif /* WEATHERCLOCK_BOOT_UPDATE_H */

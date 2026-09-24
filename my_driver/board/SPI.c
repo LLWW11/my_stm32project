@@ -12,9 +12,6 @@ DC： PD6	数据/控制线：1表示显示数据，0表示写入寄存器
 CS： PA4	片选，低电平有效
 BL： PD13	背光控制pin，当被拉高时打开背光，当被拉低时关闭背光
 */
-/**
- * @brief 初始化连接 TFT 的 SPI1 外设。
- */
 void SPI1_Init(void)
 {
     //
@@ -57,10 +54,6 @@ void SPI1_Init(void)
     SPI_Init(SPI1, &SPI1_InitStruct);
     SPI_Cmd(SPI1, ENABLE);
 }
-/**
- * @brief 通过 SPI1 发送一个字节。
- * @param dat 待发送的数据。
- */
 void SPI1_SendByte(uint8_t dat)
 {
     while (!SPI_GetFlagStatus(SPI1, SPI_FLAG_TXE))
@@ -79,10 +72,6 @@ MISO ：PB4
 SCLK ：PB3
 CS   ：PB14
 */
-
-/**
- * @brief 初始化连接 W25Q128 的 SPI3 外设。
- */
 void SPI3_Init(void)
 {
 
@@ -125,18 +114,16 @@ void SPI3_Init(void)
     SPI3_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;                
     SPI3_InitStruct.SPI_CRCPolynomial = 7;
     SPI_Init(SPI3, &SPI3_InitStruct);
-
-    /* 软件管理 NSS 时，必须将内部 NSS 置高以保持主机模式。 */
     SPI_NSSInternalSoftwareConfig(SPI3, SPI_NSSInternalSoft_Set);
     SPI_Cmd(SPI3, ENABLE); // 使能 SPI3
 }
 
 /**
- * @brief 等待 SPI3 指定状态标志变为目标状态。
- * @param flag 需要检查的 SPI 状态标志。
- * @param expected_status 期望的标志状态。
- * @param timeout_count 最大轮询次数。
- * @return 达到目标状态返回 true，超时返回 false。
+ * @brief 等待 SPI3 指定状态标志变为目标状态
+ * @param flag 需要检查的 SPI 状态标志
+ * @param expected_status 期望的标志状态
+ * @param timeout_count 最大轮询次数
+ * @return 达到目标状态返回 true，超时返回 false
  */
 static bool SPI3_WaitForFlag(uint16_t flag,
                              FlagStatus expected_status,
@@ -156,11 +143,11 @@ static bool SPI3_WaitForFlag(uint16_t flag,
 }
 
 /**
- * @brief 通过 SPI3 全双工交换一个字节。
- * @param transmit_data 待发送的数据。
- * @param receive_data 用于接收数据的指针，可为 NULL。
- * @param timeout_count 等待 SPI 状态标志的最大轮询次数。
- * @return 通信完成返回 true，SPI 状态标志超时返回 false。
+ * @brief 通过 SPI3 全双工交换一个字节
+ * @param transmit_data 待发送的数据
+ * @param receive_data 用于接收数据的指针，可为 NULL
+ * @param timeout_count 等待 SPI 状态标志的最大轮询次数
+ * @return 通信完成返回 true，SPI 状态标志超时返回 false
  */
 bool SPI3_TransferByte(uint8_t transmit_data,
                        uint8_t *receive_data,
@@ -190,9 +177,9 @@ bool SPI3_TransferByte(uint8_t transmit_data,
 }
 
 /**
- * @brief 等待 SPI3 完成当前字节传输。
- * @param timeout_count 等待 BSY 清零的最大轮询次数。
- * @return SPI3 空闲返回 true，超时返回 false。
+ * @brief 等待 SPI3 完成当前字节传输
+ * @param timeout_count 等待 BSY 清零的最大轮询次数
+ * @return SPI3 空闲返回 true，超时返回 false
  */
 bool SPI3_WaitIdle(uint32_t timeout_count)
 {

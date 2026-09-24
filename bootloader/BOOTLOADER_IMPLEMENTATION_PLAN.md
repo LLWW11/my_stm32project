@@ -1,5 +1,7 @@
 # WeatherClock Bootloader 详细实施计划
 
+> 当前实现已取消串口接收固件：USART1 仅输出日志，Bootloader 只安装 W25Q128 中已有的 READY 镜像。下文的串口升级内容属于早期规划，当前镜像格式与操作边界见 [W25Q128 镜像安装说明](W25Q128镜像安装说明.md)。
+
 ## 1. 文档目的
 
 本文档用于指导 STM32F407ZG 天气时钟项目从“最小串口启动程序”逐步演进为一个可用、可恢复、可扩展的 Bootloader。
@@ -601,4 +603,3 @@ APP start
 ```
 
 以及天气时钟的 FreeRTOS、LVGL、SysTick 和外设中断是否正常。
-
