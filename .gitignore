@@ -1,7 +1,48 @@
+# Python 缓存与虚拟环境
 __pycache__/
 *.py[cod]
 .venv/
+
+# Node.js 依赖
 node_modules/
+
+# 本地环境变量与构建产物
 .env
 dist/
 build/
+
+# 本地开发工具生成的文件
+/.Codex/
+/.vscode/
+/.workbuddy
+*.log
+*.log.lock
+/.agent-worklog
+
+# 临时文件与备份文件
+*.tmp
+*.temp
+*.bak
+*~
+
+# 操作系统生成的文件
+.DS_Store
+Thumbs.db
+Desktop.ini
+@eaDir/
+
+
+# Keil 中间产物；链接配置文件由工程直接引用，必须保留
+/bootloader/mdk/Objects/*
+!/bootloader/mdk/Objects/weatherClock_bootloader.sct
+/bootloader/mdk/Listings/
+
+# 编译生成的目标文件
+/mdk/Objects/
+/mdk/Listings/
+
+# 本地阶段性规划，按原约定不提交
+/docs/CAN_IAP升级实施计划.md
+
+/3，原理图
+*.o

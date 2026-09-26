@@ -103,14 +103,13 @@ void usart2_Init(void) // usart2用于和esp32通信
 
     NVIC_InitTypeDef NVIC_InitStructure;
     NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 6;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStructure);
-    // ----------------------------------------
     USART_Cmd(USART2, ENABLE);
 }
-
+/*
 void clear_usart_buffer(void)
 {
     rx_buffer.head = 0;
@@ -121,7 +120,7 @@ void ring_buffer_push(uint8_t data)
 {
     uint16_t next_head = (rx_buffer.head + 1) % RING_BUFFER_SIZE;
     if (next_head != rx_buffer.tail)
-    { // 如果没满
+    { 
         rx_buffer.buffer[rx_buffer.head] = data;
         rx_buffer.head = next_head;
     }
@@ -130,7 +129,7 @@ bool ring_buffer_pop(uint8_t *data)
 {
     if (rx_buffer.head == rx_buffer.tail)
     {
-        return false; // 缓冲区为空
+        return false; 
     }
     *data = rx_buffer.buffer[rx_buffer.tail];
     rx_buffer.tail = (rx_buffer.tail + 1) % RING_BUFFER_SIZE;
@@ -154,7 +153,6 @@ uint16_t usart2_receiveString(char *buffer, uint16_t bufferSize, uint32_t timeou
 
     while (index < bufferSize - 1)
     {
-        // 从环形缓冲区里读数据，而不是去读底层硬件了
         if (ring_buffer_pop(&rxData))
         {
             buffer[index++] = rxData;
@@ -173,3 +171,4 @@ uint16_t usart2_receiveString(char *buffer, uint16_t bufferSize, uint32_t timeou
     buffer[index] = '\0';
     return index; // 返回接收到的数据长度
 }
+    */

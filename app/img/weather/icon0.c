@@ -1,6 +1,6 @@
 #include "TFT_Img.h"
-
-
+#include "dbg_config.h"
+#if(ENABLE_LVGL_USE == 0)
 static const unsigned char gImage_icon0[12800] = { /* 0X00,0X10,0X50,0X00,0X50,0X00,0X01,0X1B, */
 0XF7,0XC7,0XF7,0XC7,0XF7,0XC7,0XF8,0XC7,0XF8,0XBF,0XF8,0XBF,0XF8,0XBF,0XF8,0XBF,
 0XF8,0XC7,0XF8,0XC7,0XF8,0XC7,0XF8,0XC7,0XF8,0XC7,0XF8,0XBF,0XF8,0XC7,0XF7,0XC7,
@@ -811,3 +811,4 @@ const img_t icon0 =
     .height = 80,
     .data = gImage_icon0,
 };
+#endif

@@ -10,6 +10,8 @@ typedef struct
     volatile uint16_t tail; // 读指针（你用的）
 } RingBuffer_t;
 
+extern RingBuffer_t rx_buffer;
+
 void usart_Init(void);
 void usart1_SendByte(uint8_t data);
 void usart_sendString(uint8_t *str);
