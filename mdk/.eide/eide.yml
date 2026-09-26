@@ -119,6 +119,11 @@ virtualFolder:
             - path: ../my_driver/25q128/25q128.c
             - path: ../my_driver/25q128/25q128.h
           folders: []
+        - name: can_iap
+          files:
+            - path: ../my_driver/can_iap/can_iap.h
+            - path: ../my_driver/can_iap/can_iap.c
+          folders: []
     - name: firmware
       files: []
       folders:
@@ -576,6 +581,7 @@ targets:
         - ../third_lib/lvgl
         - ../third_lib
         - ../third_lib/lvgl/src
+        - ../my_driver/can_iap
       libList:
         - ../third_lib/lvgl
     excludeList:

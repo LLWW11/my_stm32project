@@ -9,7 +9,7 @@
 #include "TFT_LCD.h"
 #include "lv_port_disp.h"
 #include "w25q128_test.h"
-
+#include "can_iap.h"
 /*
 char str[] = "what are you doing now ?";
 char buffer[1000] = {0};
@@ -40,6 +40,62 @@ static void lvgl_task(void *pvParameter)
     }
 }
 #endif
+
+#define CAN_TEST_LOOPBACK 0
+
+// loopback与双机测试的任务
+static void can_test_task(void *argument)
+{
+    CanRxMsg rx;
+    const uint8_t probe[4] = {0x4C, 0x4F, 0x4F, 0x50}; /* "LOOP" */
+    uint8_t seq = 0;
+
+    (void)argument;
+
+    if (!can_test_init(CAN_TEST_LOOPBACK != 0))
+    {
+        printf("CAN init failed\r\n");
+        vTaskDelete(NULL);
+    }
+
+    while (1)
+    {
+#if CAN_TEST_LOOPBACK
+        bool sent = can_test_send(0x320, probe, sizeof(probe),
+                                  pdMS_TO_TICKS(100));
+        bool received = sent && can_test_receive(&rx, pdMS_TO_TICKS(100));
+
+        if (received && rx.StdId == 0x320U &&
+            rx.DLC == sizeof(probe) &&
+            memcmp(rx.Data, probe, sizeof(probe)) == 0)
+            printf("CAN loopback OK\r\n");
+        else
+            printf("CAN loopback FAIL\r\n");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+#else
+        uint8_t heartbeat[1] = {seq++};
+
+        /* STM32 每两秒发 0x320；同时轮询 i.MX6ULL 的 0x321 */
+        if (!can_test_send(0x320, heartbeat, sizeof(heartbeat),
+                           pdMS_TO_TICKS(100)))
+            printf("CAN 0x320 TX failed\r\n");
+
+        for (uint16_t i = 0; i < 100U; ++i)
+        {
+            if (can_test_receive(&rx, pdMS_TO_TICKS(20)) &&
+                rx.StdId == 0x321U)
+            {
+                printf("CAN 0x321 RX, DLC=%u\r\n", rx.DLC);
+
+                /* 收到 0x321 后，以 0x322 原样回复其数据 */
+                if (!can_test_send(0x322, rx.Data, rx.DLC, pdMS_TO_TICKS(100)))
+                    printf("CAN 0x322 TX failed\r\n");
+            }
+        }
+#endif
+    }
+}
+
 static void main_init(void *param)
 {
     board_Init();
@@ -56,8 +112,10 @@ static void main_init(void *param)
 */
 
     welcome_page_display();
+    xTaskCreate(can_test_task, "can_test", 512, NULL, 7, NULL);
+    vTaskDelete(NULL); /* 仅用于 CAN 联调版；通过后恢复原业务流程。 */
     wifi_init();
-    w25q128_self_test(); //w25q128测试用
+    w25q128_self_test(); // w25q128测试用
     wait_wifi_connet();
     main_loop_Init();
     vTaskDelete(NULL);

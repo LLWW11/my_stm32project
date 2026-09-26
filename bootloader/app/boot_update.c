@@ -8,9 +8,9 @@
 #define BOOT_APP_BASE          0x08010000U
 #define BOOT_APP_END           0x08100000U // 不包含，实际为0x0810 0000U ~ 0x080F FFFFU
 #define BOOT_MAX_IMAGE_SIZE    0x000F0000U
-#define BOOT_W25_HEADER_ADDR   0x00000000U
-#define BOOT_W25_IMAGE_ADDR    0x00001000U
-#define BOOT_IMAGE_MAGIC       0x31505557U /* 小端字节序为 WUP1 */
+#define BOOT_W25_HEADER_ADDR   0x00000000U // 00000000 ~ 00000FFF 为头部
+#define BOOT_W25_IMAGE_ADDR    0x00001000U // W25Q128中保存更新包的起始地址
+#define BOOT_IMAGE_MAGIC       0x31505557U // 自己定义的魔数 WUP1
 #define BOOT_STATE_READY       0xFFFFFFFEU
 #define BOOT_STATE_DONE        0xFFFFFFFCU
 #define BOOT_PACKET_SIZE       256U
@@ -26,7 +26,7 @@ typedef struct
     uint32_t state;     // 状态：0xFFFFFFFE (READY) 或 0xFFFFFFFC (DONE)
 } boot_image_header_t;
 
-/** 从小端字节数组读取一个 32 位整数 */
+/** STM32只有小端模式，从小端读取一个 32 位整数 */
 static uint32_t boot_read_u32(const uint8_t *data)
 {
     return (uint32_t)data[0] |
@@ -40,12 +40,13 @@ static uint8_t boot_image_vector_valid(const uint8_t *vector, uint32_t length)
 {
     uint32_t msp = boot_read_u32(vector);
     uint32_t reset = boot_read_u32(vector + 4U);
-    uint32_t reset_address = reset & ~1U;
+    uint32_t reset_address = reset & ~1U; //偶对其
 
-    if ((msp < 0x20000000U) || (msp > 0x20020000U) || ((msp & 7U) != 0U))
+    if ((msp < 0x20000000U) || (msp > 0x20020000U) || //SRAM合法性
+        ((msp & 7U) != 0U)) // MSP 8字节对齐
         return 0U;
     if (((reset & 1U) == 0U) ||
-        (reset_address < BOOT_APP_BASE + 8U) ||
+        (reset_address < BOOT_APP_BASE + 8U) || //MSP以及Reset_Handler
         (reset_address >= BOOT_APP_BASE + length) ||
         (reset_address >= BOOT_APP_END))
         return 0U;
@@ -84,8 +85,7 @@ static uint8_t boot_header_valid(const boot_image_header_t *header)
         (header->state != BOOT_STATE_READY))
         return 0U;
 
-    return header->header_crc ==
-           boot_crc32((const uint8_t *)header, 16U);
+    return header->header_crc == boot_crc32((const uint8_t *)header, 16U);
 }
 
 /** 擦除内部 Flash 的 APP 扇区 4 至 11，保留扇区 0 至 3 */
@@ -203,7 +203,8 @@ boot_update_result_t boot_update_install_pending(void)
         boot_uart1_send_string("[BOOT] W25 unavailable\r\n");
         return BOOT_UPDATE_NONE;
     }
-    if (W25Q_Read(BOOT_W25_HEADER_ADDR, (uint8_t *)&header, sizeof(header)) != W25Q_OK)
+    if (W25Q_Read(BOOT_W25_HEADER_ADDR, 
+                 (uint8_t *)&header, sizeof(header)) != W25Q_OK)
         return BOOT_UPDATE_NONE;
     if (boot_header_valid(&header) == 0U)
         return BOOT_UPDATE_NONE;

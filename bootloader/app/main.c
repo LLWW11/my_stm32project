@@ -51,7 +51,6 @@ static bool boot_app_is_valid(uint32_t *app_msp,
 
 
 // 切换到 APP 的主栈并跳转到 APP 复位入口
-
 __asm void boot_start_app(uint32_t app_msp,
                           uint32_t app_reset_handler)
 {
@@ -93,14 +92,12 @@ static void boot_jump_to_app(uint32_t app_msp,
     //跳转
     boot_start_app(app_msp, app_reset_handler);
 
-    while (1)
-    {
+    while (1);
         //正常情况下不会跑到到这里
-    }
 }
 
 
-/** Bootloader 主入口：优先安装 READY 镜像，再检查并跳转 APP。 */
+/** Bootloader 主入口：优先安装 READY 镜像，再检查并跳转 APP */
 int main(void)
 {
     uint32_t app_msp;
@@ -110,7 +107,6 @@ int main(void)
     boot_uart1_init();
 
     boot_uart1_send_string("\r\n[BOOT] Bootloader start\r\n");
-    boot_uart1_send_string("[BOOT] USART1 log output only\r\n");
 
     update_result = boot_update_install_pending();
     if (update_result == BOOT_UPDATE_INSTALLED)
@@ -120,7 +116,7 @@ int main(void)
         boot_uart1_send_string("[BOOT] Restore W25 image and reset\r\n");
         while (1)
         {
-            // 安装失败后保留现场，由外部写入镜像并复位重试。
+            // 安装失败后保留现场，由外部写入镜像并复位重试
         }
     }
 
@@ -146,6 +142,6 @@ int main(void)
 
     while (1)
     {
-        // APP 无效时驻留，由外部写入镜像并复位重试。
+        // APP 无效时驻留，由外部写入镜像并复位重试
     }
 }
