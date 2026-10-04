@@ -37,7 +37,8 @@ extern uint32_t SystemCoreClock; // 引入 STM32 库里的系统主频变量
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION           0
 #define configSUPPORT_DYNAMIC_ALLOCATION          1
-#define configTOTAL_HEAP_SIZE                     1024 * 30
+// 栈深度以 32 位字为单位；LVGL 启动峰值栈为 32 KiB，非 LVGL 为 36 KiB，另需队列与 TCB。
+#define configTOTAL_HEAP_SIZE                     (1024U * 48U)
 #define configAPPLICATION_ALLOCATED_HEAP          0
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP 1
 
@@ -59,8 +60,9 @@ extern uint32_t SystemCoreClock; // 引入 STM32 库里的系统主频变量
 #define configMAX_CO_ROUTINE_PRIORITIES 1
 
 /* Software timer related definitions. */
+// 通常是定时器任务最高优先级
 #define configUSE_TIMERS             1
-#define configTIMER_TASK_PRIORITY    3
+#define configTIMER_TASK_PRIORITY    configMAX_PRIORITIES - 1
 #define configTIMER_QUEUE_LENGTH     10
 #define configTIMER_TASK_STACK_DEPTH configMINIMAL_STACK_SIZE
 

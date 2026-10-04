@@ -12,28 +12,28 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
-
-#define MLOOP_EVENT_TIME_SYNC (1 << 0)
-#define MLOOP_EVENT_WIFI_UPDATE (1 << 2)
-#define MLOOP_EVENT_TIME_UPDATE (1 << 3)
-#define MLOOP_EVENT_INNER_UPDATE (1 << 4)
+#include "CAN_IAP_Task.h"
+#define MLOOP_EVENT_TIME_SYNC      (1 << 0)
+#define MLOOP_EVENT_WIFI_UPDATE    (1 << 2)
+#define MLOOP_EVENT_TIME_UPDATE    (1 << 3)
+#define MLOOP_EVENT_INNER_UPDATE   (1 << 4)
 #define MLOOP_EVENT_OUTDOOR_UPDATE (1 << 5)
-#define MLOOP_EVENT_ALL (MLOOP_EVENT_TIME_SYNC |    \
-                         MLOOP_EVENT_WIFI_UPDATE |  \
-                         MLOOP_EVENT_TIME_UPDATE |  \
-                         MLOOP_EVENT_INNER_UPDATE | \
-                         MLOOP_EVENT_OUTDOOR_UPDATE)
+#define MLOOP_EVENT_ALL            (MLOOP_EVENT_TIME_SYNC |    \
+                                    MLOOP_EVENT_WIFI_UPDATE |  \
+                                    MLOOP_EVENT_TIME_UPDATE |  \
+                                    MLOOP_EVENT_INNER_UPDATE | \
+                                    MLOOP_EVENT_OUTDOOR_UPDATE)
 
-#define MS(x) (x)
+#define MS(x)      (x)
 #define SECONDS(x) MS((x) * 1000)
 #define MINUTES(x) SECONDS((x) * 60)
-#define HOURS(x) MINUTES((x) * 60)
-#define DAYS(x) HOURS((x) * 24)
+#define HOURS(x)   MINUTES((x) * 60)
+#define DAYS(x)    HOURS((x) * 24)
 
-#define TIME_SYNC_INTERVAL HOURS(1)
-#define WIFI_UPDATE_INTERVAL SECONDS(5)
-#define TIME_UPDATE_INTERVAL SECONDS(1)
-#define INNER_UPDATE_INTERVAL MINUTES(3)
+#define TIME_SYNC_INTERVAL      HOURS(1)
+#define WIFI_UPDATE_INTERVAL    SECONDS(5)
+#define TIME_UPDATE_INTERVAL    SECONDS(1)
+#define INNER_UPDATE_INTERVAL   MINUTES(3)
 #define OUTDOOR_UPDATE_INTERVAL MINUTES(10)
 
 static TaskHandle_t mloop_task;
@@ -304,7 +304,8 @@ static void mloop_func(void *param)
     {
         // 阻塞等待任务通知，没有事件时任务让出CPU不占用资源
         // event = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        if( xTaskNotifyWait(0,UINT32_MAX,&event,portMAX_DELAY) == pdTRUE )//进入等待时候不清楚任何位置
+        if (xTaskNotifyWait(0, UINT32_MAX, &event, portMAX_DELAY) == pdTRUE)
+        // 进入等待时候不清楚任何位置
         {
             if (event & MLOOP_EVENT_TIME_SYNC)
                 time_sync();
@@ -317,10 +318,13 @@ static void mloop_func(void *param)
 #if (ENABLE_LVGL_USE == 0)
             if (event & MLOOP_EVENT_TIME_UPDATE)
                 time_update();
-#endif   
+#endif
         }
     }
 }
+
+
+
 
 static void mloop_timer_callback(TimerHandle_t time1) // 周期性调用
 {
@@ -328,6 +332,7 @@ static void mloop_timer_callback(TimerHandle_t time1) // 周期性调用
     xTaskNotify(mloop_task, event, eSetBits);
 }
 
+/** 创建业务定时器与主循环任务，确认创建成功后再发送通知。 */
 void main_loop_Init(void)
 {
 #if (ENABLE_LVGL_USE == 1)
@@ -367,7 +372,7 @@ void main_loop_Init(void)
                                      (void *)MLOOP_EVENT_TIME_UPDATE,
                                      mloop_timer_callback);
 #endif
-    xTaskCreate(mloop_func, "mloop", 4096, NULL, 5, &mloop_task);
+    configASSERT(xTaskCreate(mloop_func, "mloop", 4096, NULL, 6, &mloop_task) == pdPASS);
     xTaskNotify(mloop_task, MLOOP_EVENT_ALL, eSetBits);
 
     xTimerStart(wifi_update_timer, 0);

@@ -46,3 +46,6 @@ Desktop.ini
 
 /3，原理图
 *.o
+
+/tools
+/w25q128_writer_v1_0

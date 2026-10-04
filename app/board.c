@@ -19,7 +19,6 @@ static struct led_desc led1 = {GPIOF, GPIO_Pin_10, Bit_RESET, Bit_SET};
 led_desc_t pled0 = &led0;
 led_desc_t pled1 = &led1;
 
-
 void board_low_level_init(void)
 {
     RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOF, ENABLE); // led外设是PF9和PF10
@@ -84,5 +83,7 @@ void board_Init(void)
     printf("[SYS] Build Date:%s %s\r\n", __DATE__, __TIME__);
 
     // IAP 测试
-    printf("\r\n\r\n===========[SYS] OTA test version: v2===========[\r\n\r\n");
+    printf("\r\n\r\n===========[SYS] OTA test version: v2===========\r\n\r\n");
+
+    // printf("\r\n\r\n===========[SYS] 2026-10-04 CAN IAP test version: V3===========\r\n\r\n");
 }

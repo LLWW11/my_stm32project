@@ -6,7 +6,7 @@
 #include "FreeRTOS.h"
 #include "stm32f4xx_can.h"
 //经典CAN，11bit ID，500kb/s
-//任务内轮询FIFO
+// RX0 中断搬运 FIFO，任务阻塞读取接收队列。
 
 /**
  * @brief 硬件初始化
@@ -14,8 +14,10 @@
  * @return true 初始化成功
  */
 bool can_test_init(bool loopback);
+/** 独立测试任务初始化后调用，接收 0x320、0x321、0x322 测试帧。 */
+void can_test_enable_probe_filter(void);
 /**
- * @brief 从CAN1的FIFO0轮询接收一帧标注数据
+ * @brief 从中断接收队列阻塞获取一帧标准数据帧
  * @param rx 接收缓冲区 
  * @param timeout_ticks 最长等待数
  * @return true 收到有效的标准数据帧

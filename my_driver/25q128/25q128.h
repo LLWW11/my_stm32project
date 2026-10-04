@@ -12,7 +12,7 @@
 #define W25Q128_SECTOR_ERASE_POLL_LIMIT 1000000UL
 
 /**
- * @brief W25Q128 驱动操作结果。
+ * @brief W25Q128 驱动操作结果
  */
 typedef enum
 {

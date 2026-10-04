@@ -268,7 +268,7 @@ void USART2_IRQHandler(void)
         uint8_t rx_data = USART_ReceiveData(USART2);
         if (rxlen < sizeof(rxbuf) - 1)
         {
-            rxbuf[rxlen++] = USART_ReceiveData(USART2);
+            rxbuf[rxlen++] = rx_data;
             if (rxbuf[rxlen - 1] == '\n')
             {
                 rxbuf[rxlen] = '\0';

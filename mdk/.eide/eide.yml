@@ -22,6 +22,8 @@ virtualFolder:
         - path: ../app/dbg_config.h
         - path: ../app/w25q128_test.c
         - path: ../app/w25q128_test.h
+        - path: ../app/CAN_IAP_Task.c
+        - path: ../app/CAN_IAP_Task.h
       folders:
         - name: font
           files:
@@ -67,6 +69,11 @@ virtualFolder:
                 - path: ../app/img/weather/iocn99.c
                 - path: ../app/img/weather/icon0_1.c
               folders: []
+        - name: BOOT
+          files:
+            - path: ../bootloader/app/boot_crc.c
+            - path: ../bootloader/app/boot_crc.h
+          folders: []
     - name: my_driver
       files: []
       folders:
@@ -582,12 +589,15 @@ targets:
         - ../third_lib
         - ../third_lib/lvgl/src
         - ../my_driver/can_iap
+        - ../bootloader/app
       libList:
         - ../third_lib/lvgl
     excludeList:
       - <virtual_root>/third_lib/lvgl/src/font/lv_hal_disp.c
       - <virtual_root>/third_lib/lvgl/src/font/lv_hal_indev.c
       - <virtual_root>/third_lib/lvgl/src/font/lv_hal_tick.c
+      - <virtual_root>/boot/boot_crc.c
+      - <virtual_root>/boot/boot_update.c
     settings:
       debugger: cortex-debug
     toolchain: AC5

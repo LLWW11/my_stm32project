@@ -1,7 +1,7 @@
 #ifndef __DBG_CONFIG_H__
 #define __DBG_CONFIG_H__
 
-#include <stdio.h> 
+#include <stdio.h>
 
 /* ========================================
  * 全局调试输出开关
@@ -9,7 +9,7 @@
  * 0: 关闭所有串口调试打印
  * ======================================== */
 #ifndef ENABLE_DEBUG_PRINT
-#define ENABLE_DEBUG_PRINT  1
+#define ENABLE_DEBUG_PRINT 1
 #endif
 /* ========================================
  * 使用LVGL开关
@@ -17,7 +17,7 @@
  * 0: 关闭
  * ======================================== */
 #ifndef ENABLE_LVGL_USE
-#define ENABLE_LVGL_USE  1
+#define ENABLE_LVGL_USE 1
 #endif
 /* ========================================
  * W25Q128 上电只读测试开关
@@ -25,7 +25,7 @@
  * 0: 跳过只读测试
  * ======================================== */
 #ifndef ENABLE_W25Q128_ID_TEST
-#define ENABLE_W25Q128_ID_TEST 1
+#define ENABLE_W25Q128_ID_TEST 0
 #endif
 
 /* ========================================
@@ -38,8 +38,13 @@
 #define ENABLE_W25Q128_WRITE_TEST 0
 #endif
 
-// #ifndef W25Q128_TEST_ADDRESS
-// #define W25Q128_TEST_ADDRESS 0x00FFF000UL
-// #endif
+/* ========================================
+ * CAN 双向收发测试
+ * 1: 使能测试
+ * 0: 关闭测试,直接开启can相关任务
+ * ======================================== */
+#ifndef ENABLE_CAN_TEST
+#define ENABLE_CAN_TEST 0
+#endif
 
 #endif

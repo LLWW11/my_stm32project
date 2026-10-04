@@ -93,11 +93,12 @@ static void UI_func(void *param)
     }
 }
 
+/** 按编译配置建立界面资源；任务或队列创建失败时保留断言现场。 */
 void UI_init(void)
 {
     ui_queue = xQueueCreate(16, sizeof(UI_msg_t));
     configASSERT(ui_queue);
-    xTaskCreate(UI_func, "UI", 2048, NULL, 8, NULL);
+    configASSERT(xTaskCreate(UI_func, "UI", 2048, NULL, 8, NULL) == pdPASS);
 }
 
 void ui_set_window(uint16_t sx, uint16_t sy, uint16_t ex, uint16_t ey, uint16_t color)
@@ -158,6 +159,7 @@ void ui_draw_image(uint16_t x, uint16_t y, const img_t *image)
 #include "key.h"
 
 SemaphoreHandle_t xGuiMutex = NULL;
+/** 按编译配置建立界面资源；任务或队列创建失败时保留断言现场。 */
 void UI_init(void)
 {
     xGuiMutex = xSemaphoreCreateMutex();

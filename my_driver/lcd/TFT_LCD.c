@@ -634,7 +634,7 @@ void DMA2_Stream5_IRQHandler(void)
         if (g_disp_drv != NULL)
             lv_disp_flush_ready(g_disp_drv);
 #endif
-        portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(pxHigherPriorityTaskWoken);//唤醒的是flush完成
     }
 }
 
