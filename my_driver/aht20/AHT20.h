@@ -1,7 +1,9 @@
 #ifndef __AHT20_H
 #define __AHT20_H
 #include <stdbool.h>
-#include "stm32f4xx.h"
+// #include "stm32f4xx.h"
+#include <stdint.h>
+
 bool AHT20_Init(void);
 static bool AHT20_write(uint8_t data[], uint32_t len);
 static bool AHT20_read(uint8_t data[], uint32_t len);

@@ -6,7 +6,7 @@
 #define KEY0 GPIO_Pin_4
 #define KEY1 GPIO_Pin_3
 #define KEY2 GPIO_Pin_2
-
+// #define KEY3 GPIO_Pin_2
 typedef struct
 {
     GPIO_TypeDef *Port;  // GPIO端口

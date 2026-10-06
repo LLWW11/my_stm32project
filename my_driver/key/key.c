@@ -7,7 +7,7 @@ Key_Dev_t KeyList[] = {
     {KEY_PORT, KEY2, 0, 0, 0, 0}  // KEY2
 };
 
-#define KEY_NUM (sizeof(KeyList) / sizeof(KeyList[0]))
+#define KEY_NUM        (sizeof(KeyList) / sizeof(KeyList[0]))
 #define DEBOUNCE_TICKS 8 // 检测8次
 
 void key_Init()
@@ -58,28 +58,3 @@ void key_Tick(void) // 按下和松开都检测
         }
     }
 }
-// void key_Tick(void)
-// {
-//     uint8_t i;
-//     for (i = 0; i < KEY_NUM; i++)
-//     {
-//         if (GPIO_ReadInputDataBit(KeyList[i].Port, KeyList[i].Pin) == Bit_RESET)
-//         {
-//             if (KeyList[i].State == 0)
-//             {
-//                 KeyList[i].DebounceCnt++;
-//                 // 2. 消抖确认
-//                 if (KeyList[i].DebounceCnt >= DEBOUNCE_TICKS)
-//                 {
-//                     KeyList[i].State = 1;     // 确认为按下状态
-//                     KeyList[i].PressFlag = 1; // 置位“按下标志”，通知主循环
-//                 }
-//             }
-//         }
-//         else
-//         {
-//             KeyList[i].DebounceCnt = 0; // 按键松开，立刻复位状态和计数器
-//             KeyList[i].State = 0;
-//         }
-//     }
-// }

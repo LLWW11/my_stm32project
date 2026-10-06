@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "构建 Bootloader",
+      "type": "shell",
+      "command": "${command:eide.project.build}",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "下载 Bootloader",
+      "type": "shell",
+      "command": "${command:eide.project.uploadToDevice}",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "构建并下载 Bootloader",
+      "type": "shell",
+      "command": "${command:eide.project.buildAndFlash}",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "重新构建 Bootloader",
+      "type": "shell",
+      "command": "${command:eide.project.rebuild}",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "清理 Bootloader",
+      "type": "shell",
+      "command": "${command:eide.project.clean}",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

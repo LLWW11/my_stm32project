@@ -1,0 +1,5 @@
+Objects_writer/
+Listings_writer/
+DebugConfig/*writer_mode*
+build_normal_*.log
+build_writer_mode_*.log

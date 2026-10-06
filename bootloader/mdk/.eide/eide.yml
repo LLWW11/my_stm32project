@@ -1,0 +1,186 @@
+version: "4.1"
+name: weatherClock_bootloader
+type: ARM
+deviceName: null
+packDir: null
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: Application
+      files:
+        - path: ../app/main.c
+        - path: ../app/boot_UART.c
+        - path: ../app/boot_UART.h
+        - path: ../app/boot_crc.c
+        - path: ../app/boot_crc.h
+        - path: ../app/boot_update.c
+        - path: ../app/boot_update.h
+      folders: []
+    - name: CMSIS
+      files:
+        - path: ../cmsis/startup_stm32f40_41xxx.s
+        - path: ../cmsis/system_stm32f4xx.c
+        - path: ../cmsis/system_stm32f4xx.h
+      folders: []
+    - name: STM32F4xx_StdPeriph_Driver
+      files:
+        - path: ../../firmware/driver/src/stm32f4xx_gpio.c
+        - path: ../../firmware/driver/src/stm32f4xx_rcc.c
+        - path: ../../firmware/driver/src/stm32f4xx_usart.c
+        - path: ../../firmware/driver/src/stm32f4xx_spi.c
+        - path: ../../firmware/driver/src/stm32f4xx_flash.c
+      folders: []
+    - name: W25Q128
+      files:
+        - path: ../../my_driver/board/SPI.c
+        - path: ../../my_driver/25q128/25q128.c
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: 54a3eaeaa6ab4f7c8e527e495197943b
+targets:
+  f407_boot:
+    cppPreprocessAttrs:
+      defineList:
+        - STM32F40_41xxx
+        - USE_STDPERIPH_DRIVER
+        - HSE_VALUE=8000000
+      incList:
+        - ../app
+        - ../cmsis
+        - ../../firmware/cmsis/core
+        - ../../firmware/cmsis/device
+        - ../../firmware/driver/inc
+        - ../../my_driver
+        - ../../my_driver/board
+        - .cmsis/include
+        - RTE/_f407_boot
+      libList:
+        - ../app
+    excludeList: []
+    settings:
+      debugger: cortex-debug
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: none
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler:
+            defines: []
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            gnu-extensions: true
+            one-elf-section-per-function: true
+            optimization: level-0
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: true
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: "0x08000000"
+            rw-base: "0x20000000"
+            xo-base: ""
+        scatterFilePath: weatherClock_bootloader.sct
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x20000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x10000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+      OpenOCD:
+        baseAddr: "0x08000000"
+        bin: ""
+        interface: cmsis-dap-v1
+        target: stm32f4x
+    uploader: OpenOCD

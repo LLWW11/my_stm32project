@@ -1,118 +1,500 @@
-#include "TFT_Img.h"
+ï»¿#include "TFT_Img.h"
 #include "TFT_LCD.h"
 #include "app.h"
 #include "esp_at.h"
 #include "rtc.h"
+#include "app_ui.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "dbg_config.h"
+#include "app_ui.h"
+#include "page.h"
+#if ENABLE_LVGL_USE
+static lv_obj_t *main_scr;
+
+static lv_obj_t *label_hour;
+static lv_obj_t *label_colon;
+static lv_obj_t *label_min;
+static lv_obj_t *label_city;
+static lv_obj_t *label_wifi_id;
+
+static lv_obj_t *label_date;           // æ—¥æœŸæ ‡ç­¾
+static lv_obj_t *label_inner_temp;     // å®¤å†…æ¸©åº¦æ ‡ç­¾
+static lv_obj_t *label_outdoor_temp;   // å®¤å¤–æ¸©åº¦æ ‡ç­¾
+static lv_obj_t *label_inner_humidity; // å®¤å†…æ¸©åº¦æ ‡ç­¾
+// static lv_obj_t *img_weather_icon;     // å¤©æ°”å›¾æ ‡
+static lv_obj_t *img_wifi_icon;        // å›¾æ ‡
+LV_FONT_DECLARE(lv_font_montserrat_80_partial);
+LV_FONT_DECLARE(my_font_24);
+LV_FONT_DECLARE(lv_font_montserrat_52_partial);
+
+static void subpage_event_cb(lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    lv_obj_t *subpage = lv_event_get_target(e);
+
+    if (code == LV_EVENT_KEY)
+    {
+        lv_group_t *g_main = (lv_group_t *)lv_event_get_user_data(e);
+        uint32_t key = lv_event_get_key(e);
+        if (key == LV_KEY_ESC)
+        {
+            lv_group_t *g_sub = lv_obj_get_group(subpage);
+            if (g_sub)
+                lv_group_del(g_sub);
+            lv_obj_del(subpage);
+            extern lv_indev_t *keypad_indev;
+            if (keypad_indev)
+            {
+                lv_indev_set_group(keypad_indev, g_main);
+            }
+        }
+    }
+}
+
+static void square_event_cb(lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code == LV_EVENT_CLICKED)
+    {
+        const char *text = (const char *)lv_event_get_user_data(e);
+        lv_obj_t *target_square = lv_event_get_target(e); // è·å–å½“å‰è¢«ç‚¹å‡»çš„å¯¹è±¡
+        lv_group_t *g_main = lv_obj_get_group(lv_event_get_target(e));
+
+        lv_color_t square_color = lv_obj_get_style_bg_color(target_square, LV_PART_MAIN);
+        lv_obj_t *subpage = lv_obj_create(lv_scr_act());
+        lv_obj_set_size(subpage, 240, 320);
+        lv_obj_center(subpage);
+        lv_obj_set_style_bg_color(subpage, square_color, 0);
+        lv_obj_set_style_border_width(subpage, 0, 0);
+
+        void (*display_func)(lv_obj_t *) = (void (*)(lv_obj_t *))lv_event_get_user_data(e);
+        if (display_func)
+        {
+            display_func(subpage);
+        }
+
+        lv_group_t *g_sub = lv_group_create();
+        lv_group_add_obj(g_sub, subpage);
+
+        lv_obj_add_event_cb(subpage, subpage_event_cb, LV_EVENT_KEY, g_main);
+
+        extern lv_indev_t *keypad_indev;
+        if (keypad_indev)
+        {
+            lv_indev_set_group(keypad_indev, g_sub);
+        }
+    }
+}
+
+static void main_time_update_cb(lv_timer_t *t)
+{
+    static rtc_time_t last_time = {0};
+    rtc_time_t current_time;
+    rtc_get_time(&current_time);
+
+    if (current_time.year < 2020)
+    {
+        bool blink = (current_time.second % 2 == 0);
+        lv_label_set_text(label_colon, blink ? ":" : "");
+        return;
+    }
+
+    if (memcmp(&current_time, &last_time, sizeof(rtc_time_t)) == 0)
+        return;
+
+    bool is2sec = (current_time.second % 2 == 0);
+    bool refresh = (current_time.minute != last_time.minute) || (last_time.year == 0);
+
+    memcpy(&last_time, &current_time, sizeof(rtc_time_t));
+
+    lv_label_set_text(label_colon, is2sec ? ":" : "");
+
+    if (refresh)
+    {
+        char hour_str[3];
+        char min_str[3];
+        snprintf(hour_str, sizeof(hour_str), "%02d", current_time.hour);
+        snprintf(min_str, sizeof(min_str), "%02d", current_time.minute);
+        lv_label_set_text(label_hour, hour_str);
+        lv_label_set_text(label_min, min_str);
+
+        char weekday[15];
+        char str[25];
+        switch (current_time.weekday)
+        {
+        case 1:
+            strcpy(weekday, "æ˜ŸæœŸä¸€");
+            break;
+        case 2:
+            strcpy(weekday, "æ˜ŸæœŸäºŒ");
+            break;
+        case 3:
+            strcpy(weekday, "æ˜ŸæœŸä¸‰");
+            break;
+        case 4:
+            strcpy(weekday, "æ˜ŸæœŸå››");
+            break;
+        case 5:
+            strcpy(weekday, "æ˜ŸæœŸäº”");
+            break;
+        case 6:
+            strcpy(weekday, "æ˜ŸæœŸå…­");
+            break;
+        case 7:
+            strcpy(weekday, "æ˜ŸæœŸæ—¥");
+            break;
+        default:
+            strcpy(weekday, "X");
+            break;
+        }
+        snprintf(str, sizeof(str), "%04d/%02d/%02d %s", current_time.year, current_time.month, current_time.date, weekday);
+        lv_label_set_text(label_date, str);
+    }
+}
+
+#endif
 void main_page_display(void)
 {
-    TFT_SetWindow(0, 0, 239, 319, BLACK);
+#if (ENABLE_LVGL_USE == 1)
+    main_scr = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(main_scr, lv_color_hex(0x000000), 0); // 0x00ffff 0xffffff
+    lv_scr_load(main_scr);
 
-    // µÚÒ»¸ö¾ØĞÎÇøÓò============================================================================
-    TFT_SetWindow(0, 0, 239, 155 - 1, CYAN);
+    extern lv_indev_t *keypad_indev;
+    lv_group_t *g = lv_group_create();
+    if (keypad_indev)
+        lv_indev_set_group(keypad_indev, g);
 
-    TFT_LCD_show_img(0, 0, &icon_wifi);
+    static lv_style_t style_focus;
+    lv_style_init(&style_focus);
+    lv_style_set_border_color(&style_focus, lv_color_hex(0xFF0000));
+    lv_style_set_border_width(&style_focus, 3);
+
+    // ==========================ä¸Šéƒ¨æ–¹å—=================================
+    lv_obj_t *square0 = lv_obj_create(main_scr);
+    lv_obj_set_size(square0, 240, 156);
+    lv_obj_set_pos(square0, 0, 0);
+    lv_obj_set_style_bg_color(square0, lv_color_hex(0xffffff), 0);
+    lv_obj_set_style_bg_opa(square0, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(square0, 15, LV_PART_MAIN);
+    lv_obj_clear_flag(square0, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_style(square0, &style_focus, LV_STATE_FOCUSED);
+    lv_group_add_obj(g, square0);
+    lv_obj_add_event_cb(square0, square_event_cb, LV_EVENT_CLICKED, page_square0_display);
+    lv_obj_move_background(square0);
+    // å·¦ä¸Šè§’æ˜¾ç¤ºwifiå›¾æ ‡
+    img_wifi_icon = lv_img_create(main_scr);
+    lv_obj_move_foreground(img_wifi_icon); // å°†æ­¤å¯¹è±¡ç§»åˆ°æœ€ä¸Šå±‚
+    lv_img_set_src(img_wifi_icon, &icon_wifi);
+    lv_obj_align(img_wifi_icon, LV_ALIGN_TOP_LEFT, 0, 0);
+    // å³ä¸Šè§’æ˜¾ç¤ºwifiåç§°
+    label_wifi_id = lv_label_create(main_scr);
+    lv_obj_move_foreground(label_wifi_id); // å°†æ­¤å¯¹è±¡ç§»åˆ°æœ€ä¸Šå±‚
+    // lv_obj_set_width(label_wifi_id, 190);
+    lv_obj_set_height(label_wifi_id, 25);
+    lv_obj_align(label_wifi_id, LV_ALIGN_TOP_RIGHT, 0, 0);
+    // lv_label_set_long_mode(label_wifi_id, LV_LABEL_LONG_DOT);
+    lv_label_set_text(label_wifi_id, "[----]");
+    lv_obj_set_style_text_font(label_wifi_id, &lv_font_montserrat_18, 0); // è®¾ç½®å­—ä½“å¤§å°å’Œä½ç½®
+    lv_obj_set_style_text_align(label_wifi_id, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_set_style_text_color(label_wifi_id, lv_color_hex(0x000000), 0); // è®¾ç½®å­—ä½“é¢œè‰²
+    lv_obj_set_style_bg_color(label_wifi_id, lv_color_hex(0xffffff), 0);   // è®¾ç½®èƒŒæ™¯é¢œè‰²
+    lv_obj_set_style_bg_opa(label_wifi_id, 0, 0);                          // è®¾ç½®èƒŒæ™¯é€æ˜åº¦
+
+    // Start an LVGL timer to update time without blocking on HTTP
+    lv_timer_create(main_time_update_cb, 1000, NULL);
+
+    // åˆ›å»ºä¸­é—´çš„å†’å·
+    label_colon = lv_label_create(main_scr);
+    lv_obj_set_width(label_colon, 20);
+    lv_obj_set_height(label_colon, 120);
+    lv_obj_set_style_text_font(label_colon, &lv_font_montserrat_80_partial, 0);
+    lv_label_set_text(label_colon, ":");
+    lv_obj_align(label_colon, LV_ALIGN_TOP_MID, 0, 35);
+    // å°æ—¶ï¼Œç›´æ¥å›ºå®šæ­»æ–‡æœ¬æ¡†ä½ç½®å’Œæ–‡å­—ä½ç½®
+    label_hour = lv_label_create(main_scr);
+    lv_obj_set_width(label_hour, 110);
+    lv_obj_set_height(label_hour, 120);
+    lv_obj_set_style_text_align(label_hour, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_set_style_text_font(label_hour, &lv_font_montserrat_80_partial, 0);
+    lv_label_set_text(label_hour, "--");
+    lv_obj_set_pos(label_hour, 0, 35);
+    lv_obj_set_style_text_align(label_hour, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
+    // åˆ†é’Ÿï¼Œç›´æ¥å›ºå®šæ­»æ–‡æœ¬æ¡†ä½ç½®å’Œæ–‡å­—ä½ç½®
+    label_min = lv_label_create(main_scr);
+    lv_obj_set_width(label_min, 110);
+    lv_obj_set_height(label_min, 120);
+    lv_obj_set_style_text_font(label_min, &lv_font_montserrat_80_partial, 0);
+    lv_label_set_text(label_min, "--");
+    lv_obj_set_pos(label_min, 110 + 20, 35);
+    lv_obj_set_style_text_align(label_min, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+    // æ—¥æœŸ
+    label_date = lv_label_create(main_scr);
+    lv_obj_set_width(label_date, 240);
+    lv_obj_set_height(label_date, 30);
+    lv_obj_set_style_text_font(label_date, &my_font_24, 0);
+    lv_label_set_text(label_date, "----/--/- æ˜ŸæœŸæ—¥");
+    lv_obj_set_pos(label_date, 0, 115);
+    lv_obj_set_style_text_align(label_date, LV_TEXT_ALIGN_CENTER, LV_STATE_DEFAULT);
+
+    //==============================å·¦ä¸‹è§’æ–¹å—=======================================
+    lv_obj_t *square1 = lv_obj_create(main_scr);
+    lv_obj_clear_flag(square1, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_size(square1, 116, 156);
+    lv_obj_set_style_bg_color(square1, lv_color_hex(0x00ffff), 0);
+    lv_obj_align(square1, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_set_style_radius(square1, 15, LV_PART_MAIN);
+    lv_obj_clear_flag(square1, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_style(square1, &style_focus, LV_STATE_FOCUSED);
+    lv_group_add_obj(g, square1);
+    lv_obj_add_event_cb(square1, square_event_cb, LV_EVENT_CLICKED, page_square1_display);
+    //"å®¤å†…ç¯å¢ƒ"å››ä¸ªå¤§å­—
+    lv_obj_t *label_shinei = lv_label_create(square1);
+    lv_obj_set_width(label_shinei, 114);
+    lv_obj_set_height(label_shinei, 30);
+    lv_obj_set_style_text_font(label_shinei, &my_font_24, 0);
+    lv_label_set_text(label_shinei, "å®¤å†…ç¯å¢ƒ");
+    lv_obj_set_pos(label_shinei, -10, -10);
+    lv_obj_set_style_text_align(label_shinei, LV_TEXT_ALIGN_CENTER, LV_STATE_DEFAULT);
+
+    // å®šæ­»çš„æ‘„æ°åº¦å’Œç™¾åˆ†æ¯”å•ä½
+    lv_obj_t *label_sheshidu = lv_label_create(square1);
+    lv_obj_set_width(label_sheshidu, 112);
+    lv_obj_set_height(label_sheshidu, 55);
+    lv_obj_set_style_text_font(label_sheshidu, &my_font_24, 0);
+    lv_label_set_text(label_sheshidu, "â„ƒ");
+    lv_obj_set_pos(label_sheshidu, -10, -10 + 40);
+    lv_obj_set_style_text_align(label_sheshidu, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
+    lv_obj_t *label_percent = lv_label_create(square1);
+    lv_obj_set_width(label_percent, 112);
+    lv_obj_set_height(label_percent, 55);
+    lv_obj_set_style_text_font(label_percent, &lv_font_montserrat_24, 0);
+    lv_label_set_text(label_percent, "%");
+    lv_obj_set_pos(label_percent, -13, -13 + 90);
+    lv_obj_set_style_text_align(label_percent, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
+
+    label_inner_temp = lv_label_create(square1);
+    lv_obj_move_foreground(label_inner_temp);
+    lv_obj_set_width(label_inner_temp, 100);
+    lv_obj_set_height(label_inner_temp, 55);
+    lv_obj_set_style_text_font(label_inner_temp, &lv_font_montserrat_52_partial, 0);
+    lv_label_set_text(label_inner_temp, "---");
+    lv_obj_set_pos(label_inner_temp, -10, -10 + 40);
+    lv_obj_set_style_text_align(label_inner_temp, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+
+    label_inner_humidity = lv_label_create(square1);
+    lv_obj_move_foreground(label_inner_humidity);
+    lv_obj_set_width(label_inner_humidity, 100);
+    lv_obj_set_height(label_inner_humidity, 55);
+    lv_obj_set_style_text_font(label_inner_humidity, &lv_font_montserrat_52_partial, 0);
+    lv_label_set_text(label_inner_humidity, "---");
+    lv_obj_set_pos(label_inner_humidity, -10, -10 + 90);
+    lv_obj_set_style_text_align(label_inner_humidity, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+
+    // ===============================å³ä¸‹è§’æ–¹å—================================
+    lv_obj_t *square2 = lv_obj_create(main_scr);
+    lv_obj_set_size(square2, 116, 156);
+    lv_obj_set_style_bg_color(square2, lv_color_hex(0xC0FCC0), 0);
+    lv_obj_align(square2, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+    lv_obj_set_style_radius(square2, 15, LV_PART_MAIN);
+    lv_obj_clear_flag(square2, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_style(square2, &style_focus, LV_STATE_FOCUSED);
+    lv_group_add_obj(g, square2);
+    lv_obj_add_event_cb(square2, square_event_cb, LV_EVENT_CLICKED, page_square2_display);
+
+    lv_obj_t *label_shiwai = lv_label_create(square2);
+    lv_obj_set_width(label_shiwai, 116);
+    lv_obj_set_height(label_shiwai, 30);
+    lv_obj_set_style_text_font(label_shiwai, &my_font_24, 0);
+    lv_label_set_text(label_shiwai, "å®¤å¤–ç¯å¢ƒ");
+    lv_obj_set_pos(label_shiwai, -10, -10);
+    lv_obj_set_style_text_align(label_shiwai, LV_TEXT_ALIGN_CENTER, LV_STATE_DEFAULT);
+    // åŸå¸‚
+    label_city = lv_label_create(square2);
+    lv_obj_set_width(label_city, 116);
+    lv_obj_set_height(label_city, 30);
+    lv_obj_set_style_text_font(label_city, &lv_font_montserrat_28, 0);
+    lv_label_set_text(label_city, "City");
+    lv_obj_set_pos(label_city, -10, -10 + 40);
+    lv_obj_set_style_text_align(label_city, LV_TEXT_ALIGN_CENTER, LV_STATE_DEFAULT);
+    // â„ƒç¬¦å·
+    label_sheshidu = lv_label_create(square2);
+    lv_obj_set_width(label_sheshidu, 112);
+    lv_obj_set_height(label_sheshidu, 55);
+    lv_obj_set_style_text_font(label_sheshidu, &my_font_24, 0);
+    lv_label_set_text(label_sheshidu, "â„ƒ");
+    lv_obj_set_pos(label_sheshidu, -10, -10 + 90);
+    lv_obj_set_style_text_align(label_sheshidu, LV_TEXT_ALIGN_RIGHT, LV_STATE_DEFAULT);
+    // æ¸©åº¦
+    label_outdoor_temp = lv_label_create(square2);
+    lv_obj_move_foreground(label_outdoor_temp);
+    lv_obj_set_width(label_outdoor_temp, 112);
+    lv_obj_set_height(label_outdoor_temp, 55);
+    lv_obj_set_style_text_font(label_outdoor_temp, &lv_font_montserrat_52_partial, 0);
+    lv_label_set_text(label_outdoor_temp, "---");
+    lv_obj_set_pos(label_outdoor_temp, -10, -10 + 90);
+    lv_obj_set_style_text_align(label_outdoor_temp, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
+
+#endif
+#if (ENABLE_LVGL_USE == 0)
+    ui_set_window(0, 0, 239, 319, BLACK);
+
+    // ç¬¬ä¸€ä¸ªçŸ©å½¢åŒºåŸŸ============================================================================
+    ui_set_window(0, 0, 239, 155 - 1, CYAN);
+
+    ui_draw_image(0, 0, &icon_wifi);
     int ssid_start_x =
         240 - 1 - (strlen(WIFI_SSID) + 1) * font20_maple_bold.height / 2;
-    TFT_LCD_Write_String(ssid_start_x, 0, WIFI_SSID, &font20_maple_bold, CYAN,
-                         BLACK);
-    TFT_LCD_Write_String(240 - 1 - font20_maple_bold.height / 2, 0, "]",
-                         &font20_maple_bold, CYAN, BLACK);
-    TFT_LCD_Write_String(ssid_start_x - font20_maple_bold.height / 2, 0, "[",
-                         &font20_maple_bold, CYAN, BLACK);
+    ui_write_string(ssid_start_x, 0, WIFI_SSID, &font20_maple_bold, CYAN,
+                    BLACK);
+    ui_write_string(240 - 1 - font20_maple_bold.height / 2, 0, "]",
+                    &font20_maple_bold, CYAN, BLACK);
+    ui_write_string(ssid_start_x - font20_maple_bold.height / 2, 0, "[",
+                    &font20_maple_bold, CYAN, BLACK);
 
-    TFT_LCD_Write_String(20, 30, "--:--", &font80_black, CYAN, BLACK);
-    TFT_LCD_Write_String(18, 120, "----/--/-- ĞÇÆÚÒ»", &font24_maple_bold, CYAN,
-                         BLACK);
+    ui_write_string(20, 30, "--:--", &font80_black, CYAN, BLACK);
+    ui_write_string(18, 120, "----/--/-- æ˜ŸæœŸä¸€", &font24_maple_bold, CYAN,
+                    BLACK);
 
-    // µÚ¶ş¸ö¾ØĞÎÇøÓò============================================================================
-    TFT_SetWindow(0, 164, 114, 319, LIGHT_BLUE);
-    // ¹Ì¶¨µÄ
-    TFT_LCD_Write_String(0, 164, "ÊÒÄÚ»·¾³", &font24_maple_bold, LIGHT_BLUE,
-                         BLACK);
-    TFT_LCD_Write_String(86, 164 + 54 - 7, "¡æ", &font24_maple_bold, LIGHT_BLUE,
-                         BLACK);
-    TFT_LCD_Write_String(88, 164 + 54 * 2 + 24 + 10 - 32 - 3, "%",
-                         &font32_youyuan, LIGHT_BLUE, BLACK);
+    // ç¬¬äºŒä¸ªçŸ©å½¢åŒºåŸŸ============================================================================
+    ui_set_window(0, 164, 114, 319, LIGHT_BLUE);
+    // å›ºå®šçš„
+    ui_write_string(0, 164, "å®¤å†…ç¯å¢ƒ", &font24_maple_bold, LIGHT_BLUE,
+                    BLACK);
+    ui_write_string(86, 164 + 54 - 7, "â„ƒ", &font24_maple_bold, LIGHT_BLUE,
+                    BLACK);
+    ui_write_string(88, 164 + 54 * 2 + 24 + 10 - 32 - 3, "%",
+                    &font32_youyuan, LIGHT_BLUE, BLACK);
 
-    // ±ä»¯µÄ
-    TFT_LCD_Write_String(0, 164 + 24, "---", &font54_songti, LIGHT_BLUE, BLACK);
-    TFT_LCD_Write_String(0, 164 + 54 + 24 + 10, "---", &font54_songti,
-                         LIGHT_BLUE, BLACK);
+    // å˜åŒ–çš„
+    ui_write_string(0, 164 + 24, "---", &font54_songti, LIGHT_BLUE, BLACK);
+    ui_write_string(0, 164 + 54 + 24 + 10, "---", &font54_songti,
+                    LIGHT_BLUE, BLACK);
 
-    // µÚÈı¸ö¾ØĞÎÇøÓò============================================================================
-    // ¹Ì¶¨µÄ
-    TFT_SetWindow(125, 164, 239, 319, LIGHT_GREEN);
-    TFT_LCD_show_img(125 + 5, (239 + 319) / 2 - icon_wenduji.height / 2,
-                     &icon_wenduji);
-    TFT_LCD_Write_String(125 + 27 * 3 + 5, 164 + 54 - 7, "¡æ",
-                         &font24_maple_bold, LIGHT_GREEN,
-                         BLACK); // ÖÕÓÚ236ĞĞ
-    // ±ä»¯µÄ
-    TFT_LCD_Write_String(125, 164, "City?", &font32_youyuan, LIGHT_GREEN,
-                         BLACK); //
-    TFT_LCD_Write_String(125, 164 + 24, "---", &font54_songti, LIGHT_GREEN,
-                         BLACK); // ÖÕÓÚ242ĞĞ
+    // ç¬¬ä¸‰ä¸ªçŸ©å½¢åŒºåŸŸ============================================================================
+    // å›ºå®šçš„
+    ui_set_window(125, 164, 239, 319, LIGHT_GREEN);
+    ui_draw_image(125 + 5, (239 + 319) / 2 - icon_wenduji.height / 2,
+                  &icon_wenduji);
+    ui_write_string(125 + 27 * 3 + 5, 164 + 54 - 7, "â„ƒ",
+                    &font24_maple_bold, LIGHT_GREEN,
+                    BLACK); // ç»ˆäº236è¡Œ
+    // å˜åŒ–çš„
+    ui_write_string(125, 164, "City?", &font32_youyuan, LIGHT_GREEN,
+                    BLACK); //
+    ui_write_string(125, 164 + 24, "---", &font54_songti, LIGHT_GREEN,
+                    BLACK); // ç»ˆäº242è¡Œ
     int start_y = (239 + 319) / 2 - icon99.height / 2;
-    TFT_LCD_show_img(239 - icon99.width, start_y, &icon99); // iconÍ¼±ê¾ÓÖĞ
+    ui_draw_image(239 - icon99.width, start_y, &icon99); // iconå›¾æ ‡å±…ä¸­
+#endif
 }
 void main_page_redraw_wifissid(const char *wifi_ssid)
 {
-    TFT_SetWindow(24, 0, 239, 24, CYAN);
-    char str[21];
+#if (ENABLE_LVGL_USE == 0)
+    char str[30];
+    ui_set_window(24, 0, 239, 24, CYAN);
     snprintf(str, sizeof(str), "%s", wifi_ssid);
     int start_x = 240 - 1 - (strlen(str) + 1) * font20_maple_bold.height / 2;
-    TFT_LCD_Write_String(start_x, 0, str, &font20_maple_bold, CYAN, BLACK);
-    TFT_LCD_Write_String(240 - 1 - font20_maple_bold.height / 2, 0, "]",
-                         &font20_maple_bold, CYAN, BLACK);
-    TFT_LCD_Write_String(start_x - font20_maple_bold.height / 2, 0, "[",
-                         &font20_maple_bold, CYAN, BLACK);
+    ui_write_string(start_x, 0, str, &font20_maple_bold, CYAN, BLACK);
+    ui_write_string(240 - 1 - font20_maple_bold.height / 2, 0, "]",
+                    &font20_maple_bold, CYAN, BLACK);
+    ui_write_string(start_x - font20_maple_bold.height / 2, 0, "[",
+                    &font20_maple_bold, CYAN, BLACK);
+#elif (ENABLE_LVGL_USE == 1)
+    if (label_wifi_id != NULL)
+    {
+        if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+        {
+            lv_label_set_text_fmt(label_wifi_id, "[%s]", wifi_ssid);
+            xSemaphoreGive(xGuiMutex);
+        }
+    }
+#endif
 }
 void main_page_redraw_time(rtc_time_t *rtc_time, bool is2sec, bool refresh)
 {
+#if (ENABLE_LVGL_USE == 0)
     if (refresh)
     {
         char time_str[6] = "\0";
         char separator = (rtc_time->second % 2 == 0) ? ' ' : ':';
         snprintf(time_str, sizeof(time_str), "%02d%c%02d", rtc_time->hour,
                  separator, rtc_time->minute);
-        TFT_LCD_Write_String(20, 30, time_str, &font80_black, CYAN, BLACK);
+        ui_write_string(20, 30, time_str, &font80_black, CYAN, BLACK);
     }
     else
     {
-        char separator = is2sec ? ' ' : ':';
-        st7789_write_single_ascii(20 + font80_black.height, 30, separator,
-                                  &font80_black, CYAN, BLACK);
+        if (is2sec)
+            ui_write_string(20 + font80_black.height, 30, " ",
+                            &font80_black, CYAN, BLACK);
+        else
+            ui_write_string(20 + font80_black.height, 30, ":",
+                            &font80_black, CYAN, BLACK);
     }
+#elif (ENABLE_LVGL_USE == 1)
+    if (refresh)
+    {
+        char time_str[6] = "\0";
+        char hour_str[3] = "\0";
+        char min_str[3] = "\0";
+        snprintf(time_str, sizeof(time_str), "%02d:%02d", rtc_time->hour, rtc_time->minute);
+        memcpy(hour_str, time_str, 2);
+        memcpy(min_str, time_str + 3, 2);
+        if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+        {
+            lv_label_set_text(label_hour, hour_str);
+            lv_label_set_text(label_min, min_str);
+            xSemaphoreGive(xGuiMutex);
+        }
+    }
+
+    if (is2sec)
+    {
+        if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+        {
+            lv_label_set_text(label_colon, ":");
+            xSemaphoreGive(xGuiMutex);
+        }
+    }
+    else
+    {
+        if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+        {
+            lv_label_set_text(label_colon, "");
+            xSemaphoreGive(xGuiMutex);
+        }
+    }
+#endif
 }
 void main_page_redraw_date(rtc_time_t *rtc_time, bool refresh)
 {
     char weekday[15];
     char str[20];
+
     switch (rtc_time->weekday)
     {
     case 1:
-        strcpy(weekday, "ĞÇÆÚÒ»");
+        strcpy(weekday, "æ˜ŸæœŸä¸€");
         break;
     case 2:
-        strcpy(weekday, "ĞÇÆÚ¶ş");
+        strcpy(weekday, "æ˜ŸæœŸäºŒ");
         break;
     case 3:
-        strcpy(weekday, "ĞÇÆÚÈı");
+        strcpy(weekday, "æ˜ŸæœŸä¸‰");
         break;
     case 4:
-        strcpy(weekday, "ĞÇÆÚËÄ");
+        strcpy(weekday, "æ˜ŸæœŸå››");
         break;
     case 5:
-        strcpy(weekday, "ĞÇÆÚÎå");
+        strcpy(weekday, "æ˜ŸæœŸäº”");
         break;
     case 6:
-        strcpy(weekday, "ĞÇÆÚÁù");
+        strcpy(weekday, "æ˜ŸæœŸå…­");
         break;
     case 7:
-        strcpy(weekday, "ĞÇÆÚÈÕ");
+        strcpy(weekday, "æ˜ŸæœŸæ—¥");
         break;
     default:
         strcpy(weekday, "X");
@@ -120,11 +502,19 @@ void main_page_redraw_date(rtc_time_t *rtc_time, bool refresh)
     }
     sprintf(str, "%04d/%02d/%02d %s", rtc_time->year, rtc_time->month,
             rtc_time->date, weekday);
-    TFT_LCD_Write_String(18, 120, str, &font24_maple_bold, CYAN, BLACK);
+#if (ENABLE_LVGL_USE == 0)
+    ui_write_string(18, 120, str, &font24_maple_bold, CYAN, BLACK);
+#elif (ENABLE_LVGL_USE == 1)
+    if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+    {
+        lv_label_set_text(label_date, str);
+        xSemaphoreGive(xGuiMutex);
+    }
+#endif
 }
 void main_page_redraw_inner_temperature(float temp)
 {
-    char temp_str[4] = {0}; // ·ûºÅÎ»£¬Á½¸öÎÂ¶È£¬½áÊø±êÖ¾£¬×Ü¹²4Î»
+    char temp_str[4] = {0}; // ç¬¦å·ä½ï¼Œä¸¤ä¸ªæ¸©åº¦ï¼Œç»“æŸæ ‡å¿—ï¼Œæ€»å…±4ä½
     if (temp > -20.0f && temp < 100.0f)
     {
         if (temp == 0)
@@ -134,9 +524,17 @@ void main_page_redraw_inner_temperature(float temp)
         if (temp < 0)
             snprintf(temp_str, sizeof(temp_str), "%2f", temp);
     }
-    // printf("[Temperature] %s,%f\r\n", temp_str, temp);
-    TFT_LCD_Write_String(0, 164 + 24, temp_str, &font54_songti, LIGHT_BLUE,
-                         BLACK);
+// printf("[Temperature] %s,%f\r\n", temp_str, temp);
+#if (ENABLE_LVGL_USE == 0)
+    ui_write_string(0, 164 + 24, temp_str, &font54_songti, LIGHT_BLUE,
+                    BLACK);
+#elif (ENABLE_LVGL_USE == 1)
+    if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+    {
+        lv_label_set_text(label_inner_temp, temp_str);
+        xSemaphoreGive(xGuiMutex);
+    }
+#endif
 }
 void main_page_redraw_inner_humidity(float humidity)
 {
@@ -150,26 +548,37 @@ void main_page_redraw_inner_humidity(float humidity)
     }
     char tmp[5] = " ";
     strncat(tmp, humidity_str, sizeof(tmp));
-    // printf("[Humidity] %s,%f\r\n", tmp, humidity);
-    TFT_LCD_Write_String(0, 164 + 54 + 24 + 10, tmp, &font54_songti, LIGHT_BLUE,
-                         BLACK);
+#if (ENABLE_LVGL_USE == 0)
+    ui_write_string(0, 164 + 54 + 24 + 10, tmp, &font54_songti, LIGHT_BLUE,
+                    BLACK);
+#elif (ENABLE_LVGL_USE == 1)
+    if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+    {
+        lv_label_set_text(label_inner_humidity, tmp);
+        xSemaphoreGive(xGuiMutex);
+    }
+#endif
 }
 void main_page_redraw_outdoor_city(const char *city)
 {
     char str[9];
-    snprintf(str, sizeof(str), "%-7s", city); // ÓÒ¶ÔÆë£¬³ÇÊĞ×î¶àÏÔÊ¾7¸ö×ÖÄ¸
-    TFT_LCD_Write_String(125, 164, str, &font32_youyuan, LIGHT_GREEN, BLACK);
-    // char str[9];
-    // snprintf(str, sizeof(str), "%s", city);
-    // TFT_LCD_Write_String(125, 164, str, &font24_maple_bold, LIGHT_GREEN,
-    // BLACK);
+    snprintf(str, sizeof(str), "%-7s", city); // å³å¯¹é½ï¼ŒåŸå¸‚æœ€å¤šæ˜¾ç¤º7ä¸ªå­—æ¯
+#if (ENABLE_LVGL_USE == 0)
+    ui_write_string(125, 164, str, &font32_youyuan, LIGHT_GREEN, BLACK);
+#elif (ENABLE_LVGL_USE == 1)
+    if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+    {
+        lv_label_set_text(label_city, str);
+        xSemaphoreGive(xGuiMutex);
+    }
+#endif
 }
 void main_page_redraw_outdoor_temperature(char *temp)
 {
     char temp_str[4];
 
     int temp_int = 0;
-    sscanf(temp, "%d", &temp_int); // ÏÈ°ÑÎÂ¶È±äÎªÕûÊı;
+    sscanf(temp, "%d", &temp_int); // å…ˆæŠŠæ¸©åº¦å˜ä¸ºæ•´æ•°;
     if (temp_int == 0)
         strcpy(temp_str, "  0");
     else if (temp_int > 0)
@@ -178,40 +587,54 @@ void main_page_redraw_outdoor_temperature(char *temp)
         snprintf(temp_str, sizeof(temp_str), "%d", temp_int);
     //"-18"  " -5"  "  6"  " 24"
     sprintf(temp_str, "%3d", temp_int);
-    TFT_LCD_Write_String(125, 164 + 24, temp_str, &font54_songti, LIGHT_GREEN,
-                         BLACK);
+#if (ENABLE_LVGL_USE == 0)
+    ui_write_string(125, 164 + 24, temp_str, &font54_songti, LIGHT_GREEN,
+                    BLACK);
+#elif (ENABLE_LVGL_USE == 1)
+    if (xSemaphoreTake(xGuiMutex, portMAX_DELAY) == pdTRUE)
+    {
+        lv_label_set_text(label_outdoor_temp, temp_str);
+        xSemaphoreGive(xGuiMutex);
+    }
+#endif
 }
 void main_page_redraw_outdoor_weather_icon(char *text, bool isNight)
 {
+#if (ENABLE_LVGL_USE == 0)
     const img_t *icon;
-    if (strstr(text, "Sunny") != NULL) // °×ÌìÇçÌì
+#elif (ENABLE_LVGL_USE == 1)
+    const lv_img_dsc_t *icon;
+#endif
+    if (strstr(text, "Sunny") != NULL) // ç™½å¤©æ™´å¤©
         icon = &icon0_1;
-    else if (strstr(text, "Clear") != NULL) // ÍíÉÏÇçÌì
+    else if (strstr(text, "Clear") != NULL) // æ™šä¸Šæ™´å¤©
         icon = &icon1;
-    else if (strstr(text, "loudy") != NULL) // ¶àÔÆ»òÕß²¿·ÖµØÇø¶àÔÆ
+    else if (strstr(text, "loudy") != NULL) // å¤šäº‘æˆ–è€…éƒ¨åˆ†åœ°åŒºå¤šäº‘
         icon = isNight ? &icon6 : &icon5;
-    else if (strstr(text, "Overcast") != NULL) // ÒõÌì
+    else if (strstr(text, "Overcast") != NULL) // é˜´å¤©
         icon = &icon9;
-    else if (strstr(text, "hunder") != NULL) // À×
+    else if (strstr(text, "hunder") != NULL) // é›·
         icon = &icon11;
     else if (strstr(text, "rain") != NULL || strstr(text, "lizzard") != NULL ||
-             strstr(text, "drizzle") != NULL) // Óê
+             strstr(text, "drizzle") != NULL) // é›¨
         icon = &icon13;
     else if (strstr(text, "snow") != NULL ||
-             strstr(text, "snow") != NULL) // Ñ©Ìì
+             strstr(text, "snow") != NULL) // é›ªå¤©
         icon = &icon23;
-    else if (strstr(text, "sleet") != NULL) // Óê¼ĞÑ©
+    else if (strstr(text, "sleet") != NULL) // é›¨å¤¹é›ª
         icon = &icon20;
-    else if (strstr(text, "Mist") != NULL || strstr(text, "og") != NULL) // ÎíÌì
+    else if (strstr(text, "Mist") != NULL || strstr(text, "og") != NULL) // é›¾å¤©
         icon = &icon31;
-    else if (strstr(text, "pellet") != NULL) // ¶³Óê
+    else if (strstr(text, "pellet") != NULL) // å†»é›¨
         icon = &icon19;
     else
         icon = &icon99;
+#if (ENABLE_LVGL_USE == 0)
     int start_y = 0;
-
-    TFT_SetWindow(240 - icon->width - 1, 320 - 80, 240, 320, LIGHT_GREEN);
+    ui_set_window(240 - icon->width - 1, 320 - 80, 240, 320, LIGHT_GREEN);
 
     start_y = (239 + 319) / 2 - icon->height / 2;
-    TFT_LCD_show_img(240 - icon->width - 1, start_y, icon);
+    ui_draw_image(240 - icon->width - 1, start_y, icon);
+#elif (ENABLE_LVGL_USE == 1)
+#endif
 }

@@ -1,48 +1,43 @@
 {
-    "folders": [
-        {
-            "path": "."
-        }
-    ],
-    "settings": {
-        "terminal.integrated.shellIntegration.enabled": false,
-        "clangd.arguments": [
-            "--header-insertion=never"
-        ],
-        "files.autoGuessEncoding": true,
-        "C_Cpp.default.configurationProvider": "cl.eide",
-        "C_Cpp.errorSquiggles": "disabled",
-        "files.associations": {
-            ".eideignore": "ignore",
-            "*.a51": "a51",
-            "*.h": "c",
-            "*.c": "c",
-            "*.hxx": "cpp",
-            "*.hpp": "cpp",
-            "*.c++": "cpp",
-            "*.cpp": "cpp",
-            "*.cxx": "cpp",
-            "*.cc": "cpp"
-        },
-        "[yaml]": {
-            "editor.insertSpaces": true,
-            "editor.tabSize": 4,
-            "editor.autoIndent": "advanced"
-        }
-    },
-    "extensions": {
-        "recommendations": [
-            "cl.eide",
-            "keroc.hex-fmt",
-            "xiaoyongdong.srecord",
-            "hars.cppsnippets",
-            "zixuanwang.linkerscript",
-            "redhat.vscode-yaml",
-            "IBM.output-colorizer",
-            "cschlosser.doxdocgen",
-            "ms-vscode.vscode-serial-monitor",
-            "dan-c-underwood.arm",
-            "marus25.cortex-debug"
-        ]
+  "folders": [
+    {
+      "path": "."
     }
+  ],
+  "settings": {
+    "terminal.integrated.shellIntegration.enabled": false,
+    "clangd.arguments": [
+      "--header-insertion=never"
+    ],
+    "files.autoGuessEncoding": true,
+    "C_Cpp.default.configurationProvider": "cl.eide",
+    "C_Cpp.errorSquiggles": "disabled",
+    "EIDE.ARM.ARMCC5.InstallDirectory": "C:\\Keil_v5\\ARM\\ARMCC",
+    "EIDE.OpenOCD.ExePath": "C:\\Users\\lw\\.eide\\tools\\openocd_7a1adfbec_mingw32\\bin\\openocd.exe",
+    "files.associations": {
+      ".eideignore": "ignore",
+      "*.a51": "a51",
+      "*.h": "c",
+      "*.c": "c",
+      "*.hxx": "cpp",
+      "*.hpp": "cpp",
+      "*.c++": "cpp",
+      "*.cpp": "cpp",
+      "*.cxx": "cpp",
+      "*.cc": "cpp"
+    },
+    "[yaml]": {
+      "editor.insertSpaces": true,
+      "editor.tabSize": 4,
+      "editor.autoIndent": "advanced"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "cl.eide",
+      "ms-vscode.cpptools",
+      "marus25.cortex-debug",
+      "redhat.vscode-yaml"
+    ]
+  }
 }
