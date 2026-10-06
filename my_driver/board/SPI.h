@@ -5,20 +5,9 @@
 #include <stddef.h>
 #include "stm32f4xx.h"
 
-/**
- * @brief 初始化连接 TFT 的 SPI1 外设
- */
+
 void SPI1_Init(void);
-
-/**
- * @brief 初始化连接 W25Q128 的 SPI3 外设
- */
 void SPI3_Init(void);
-
-/**
- * @brief 通过 SPI1 发送一个字节
- * @param dat 待发送的数据
- */
 void SPI1_SendByte(uint8_t dat);
 
 /**

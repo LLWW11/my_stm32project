@@ -2,9 +2,9 @@
 #define WEATHERCLOCK_BOOT_IMAGE_DESC_H
 
 #include <stdint.h>
-
+#include "at24c02.h"
 /* ========== 镜像格式 bootloader 与 APP 两个工程共用 ==========
- * 本文件定义 W25Q128 镜像区的内存布局。修改布局前先读完下面两条规则：
+ * 定义 W25Q128 镜像区的内存布局，修改布局前先读完下面两条规则：
  * 1. 新增受 header_crc 保护的字段（如 version），必须插在 image_crc 与 header_crc
  *    之间；CRC 覆盖长度用 offsetof(boot_image_header_t, header_crc) 计算，
  *    state 偏移用 offsetof(boot_image_header_t, state) 计算，两侧自动跟随。
@@ -17,7 +17,7 @@
 #define BOOT_IMAGE_APP_END      0x08100000U // APP 结束地址，不含
 #define BOOT_IMAGE_APP_MAX_SIZE 0x000F0000U // APP 最大 960 KiB
 
-// ---------- W25Q128 镜像区布局 ----------  //
+// ---------- W25Q128 镜像区布局 ----------  
 #define BOOT_IMAGE_W25_HEADER 0x00000000U // 头部，首个 4 KiB 扇区
 #define BOOT_IMAGE_W25_BODY   0x00001000U // BIN 正文起始
 
@@ -25,6 +25,15 @@
 #define BOOT_IMAGE_MAGIC       0x31505557U // 字节序为 "WUP1"
 #define BOOT_IMAGE_STATE_READY 0xFFFFFFFEU // 待安装
 #define BOOT_IMAGE_STATE_DONE  0xFFFFFFFCU // 已安装
+
+
+// ---------- 断电续传记录（AT24C02 0x00 起，24字节） ----------
+#define IAP_RR_ADDR            0x00U
+#define IAP_RR_MAGIC           0x31525249U  // "IRR1" 
+#define IAP_RR_STATE_ERASING   0x01U        // START 已收到，正在擦 W25Q 
+#define IAP_RR_STATE_RECEIVING 0x02U        // 擦除完成，正在收正文 
+#define IAP_CKPT_INTERVAL      4096U        // 每 4KiB 落一次进度 
+
 
 // ---------- 镜像头结构：小端、全 32 位成员、无填充，共 24 字节 ----------
 /*

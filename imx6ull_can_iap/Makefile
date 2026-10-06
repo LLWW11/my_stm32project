@@ -23,13 +23,14 @@ can_iap_send: main.c can_iap_sender.c socketcan_transport.c can_iap_sender.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(IAP_CFLAGS) main.c can_iap_sender.c socketcan_transport.c $(LDFLAGS) $(LDLIBS) -o $@
 
 # 直接包含实际 APP 接收函数和 Bootloader CRC，头文件变更后同样重新构建。
-TEST_DEPS = ../../app/CAN_IAP_Task.c ../../app/dbg_config.h \
-            ../../bootloader/app/boot_crc.c ../../bootloader/app/boot_crc.h \
-            ../../bootloader/app/boot_Image_desc.h ../../bootloader/app/boot_update.h \
-            ../../my_driver/25q128/25q128.h tests/stubs/can_iap.h tests/stubs/task.h
+TEST_DEPS = ../app/CAN_IAP_Task.c ../app/dbg_config.h \
+            ../bootloader/app/boot_crc.c ../bootloader/app/boot_crc.h \
+            ../bootloader/app/boot_Image_desc.h ../bootloader/app/boot_update.h \
+            ../my_driver/25q128/25q128.h tests/stubs/can_iap.h tests/stubs/task.h \
+            tests/stubs/at24c02.h
 
 test_can_iap_sender: tests/test_can_iap_sender.c tests/boot_crc_host.c can_iap_sender.c can_iap_sender.h $(TEST_DEPS)
-	$(HOSTCC) $(HOSTCPPFLAGS) $(HOSTCFLAGS) $(IAP_CFLAGS) -UNDEBUG -I. -Itests/stubs -I../../app -I../../my_driver -I../../bootloader/app can_iap_sender.c tests/boot_crc_host.c tests/test_can_iap_sender.c $(HOSTLDFLAGS) $(HOSTLDLIBS) -o $@
+	$(HOSTCC) $(HOSTCPPFLAGS) $(HOSTCFLAGS) $(IAP_CFLAGS) -UNDEBUG -I. -Itests/stubs -I../app -I../my_driver -I../bootloader/app can_iap_sender.c tests/boot_crc_host.c tests/test_can_iap_sender.c $(HOSTLDFLAGS) $(HOSTLDLIBS) -o $@
 
 test: test_can_iap_sender
 	./test_can_iap_sender

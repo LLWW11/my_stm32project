@@ -2,7 +2,7 @@
 
 这是匹配当前 WeatherClock APP 的 C / SocketCAN 命令行程序，不依赖第三方 CAN 库。它主动发送原始 APP BIN，STM32 在接收任务中写 W25Q128、校验 CRC、提交 READY，再复位交给 Bootloader 安装。
 
-当前镜像头仍为 **24 字节，无版本号**。本次未实现定时查询、版本比较和断电续传。源码检查和修改原因见项目中的 `docs/CAN_IAP代码检查与联调说明.md`。
+当前镜像头仍为 **24 字节，无版本号**。发送端已适配 STM32 的 AT24C02 续传记录：重新运行同一 BIN 时，START 返回已保存的正文偏移，发送端从该位置继续。当前没有定时查询和版本比较；旧的代码检查说明反映此前实现，以当前源码及本说明为准。
 
 ## 使用当前 Yocto SDK 编译
 
@@ -94,6 +94,26 @@ CAN 连接沿用已验证的双节点接线、收发器与终端配置。STM32 �
 
 同一时间只运行一个升级发送进程。STM32 的 `ENABLE_CAN_TEST` 应为 0，串口先看到 `[IAP] task ready, W25 OK` 再发送。正常 Bootloader 的 HEX 是 `bootloader/mdk/build/f407_boot/weatherClock_bootloader.hex`，APP 的 HEX 是 `mdk/build/f407/weatherClock.hex`；HEX 已含绝对地址。不要使用 `BOOT_W25_WRITER_MODE` 临时直跳 Bootloader 来验证安装。
 
+## 中断后的续传操作
+
+重新交叉编译发送程序，并重新编译、烧入包含本次会话绑定修正的 STM32 APP。正常 Bootloader 安装协议不变。无需新增 `--resume` 参数，也无需在 i.MX6ULL 上保存偏移文件。
+
+1. 传输中停止发送进程或恢复 CAN 连接后，等待 STM32 距最后一帧超过三秒并回到 IDLE；串口可看到 `[IAP] CAN RX timeout`。若 STM32 重启，则等待 IAP 任务初始化完成。
+2. 使用原来的同一个 BIN 再运行发送命令。每次运行可使用不同会话号，首个合法 DATA 会重新绑定会话。
+
+```sh
+sleep 4
+./can_iap_send --interface can0 --file ./weatherClock.bin
+```
+
+STM32 串口应出现 `[IAP] AT24C02 OK, resume enabled`。有有效断点时，串口出现 `[IAP] RESUME from ...`，发送端出现 `RESUME offset=.../...`。START 长度与 CRC32 必须和记录一致，记录 CRC、状态和偏移范围必须有效，且 W25 头部未处于 READY/DONE；否则接收端擦除并返回偏移 0，发送端显示 `NEW transfer offset=0/...`。
+
+EEPROM 每接收约 4 KiB 或正文收齐时保存进度。普通 DATA ACK 表示当前 W25 写入进度，不表示每帧都保存了 EEPROM 检查点；重启后可能从更早位置重发。发送端按 START 返回的偏移恢复，例如接收到了 7000 字节但只保存到 4096 字节时，从 4096 继续。若第一份检查点尚未保存、记录损坏、EEPROM 不可用或 BIN 已变化，会从零开始。
+
+若断点已等于 BIN 长度，发送端先重发最后一个字节的 DATA，接收端回读核对尾部并绑定新会话，不重复写正文；随后发送 END，重新执行完整 CRC 和 READY 提交。
+
+目前采用手动重新运行恢复：程序会对短暂 DATA 丢包重试，重试耗尽或链路故障时退出，不在后台自动重连。若 END 已发送但未收到确认，仍返回退出码 2；先看串口确认是否已 READY/安装完成，再决定是否重新发送。READY/DONE 镜像的记录不会用于续传，盲目重跑可能触发全量重新擦除。
+
 ## 协议与超时
 
 全部为经典 CAN 的 11 位标准数据帧，整数小端。
@@ -107,7 +127,7 @@ CAN 连接沿用已验证的双节点接线、收发器与终端配置。STM32 �
 
 回复的 `[6]` 分别为 START=`0x20`、DATA=`0x21`、END=`0x22`；接收任务主动报告间隔超时为 `0x00`。START 回复会话为 0，首个合法 DATA 绑定传输会话，DATA 和 END 回复必须匹配该会话。CRC 使用 CRC-32/ISO-HDLC，多项式 `0xEDB88320`，初值和最终异或均为 `0xFFFFFFFF`，标准测试串 `123456789` 的 CRC 为 `0xCBF43926`。
 
-START 必须等待 W25 头部及所有正文扇区擦除完成，默认超时 180 秒；此期间不发送 DATA，不自动重发 START。DATA 每帧等待下一偏移的确认，默认 500 ms 超时、最多重传 3 次；重复分片由 APP 返回已落盘进度。END 默认等待 30 秒，允许全镜像读回 CRC 与头部提交，**不自动重发 END**。
+START 默认超时 180 秒：有有效续传记录时返回保存偏移；否则等待 W25 头部及所有正文扇区擦除完成后返回 0。主机只接受会话为 0、请求标签为 `0x20`、偏移不超过 BIN 长度的 START ACK；此期间不发送 DATA，不自动重发 START。DATA 每帧等待下一偏移的确认，默认 500 ms 超时、最多重传 3 次；重复分片由 APP 返回已落盘进度。END 默认等待 30 秒，允许全镜像读回 CRC 与头部提交，**不自动重发 END**。
 
 ```sh
 ./can_iap_send --interface can0 --file ./weatherClock.bin --session 73 \
@@ -129,9 +149,13 @@ START 必须等待 W25 头部及所有正文扇区擦除完成，默认超时 18
 
 成功接收后，串口应依次显示 APP 的 `CRC PASS`、`image READY`，再显示 Bootloader 的 `External CRC PASS`、`Internal CRC PASS`、`Install PASS`，最后进入新 APP。发送端的 `Image READY` 不能代替这些安装日志。
 
-当前只有一份外部候选镜像，尚无回滚、安装后健康确认和掉电续传。会话号及 expected 仅保存在 RAM，断电后应在 APP 能正常启动的前提下重新 START，从零发送。若内部 APP 安装中断且 Bootloader 驻留，当前 CAN 接收在 APP 中，需通过调试器或外部 W25 写入方式恢复，不能依赖本工具向驻留 Bootloader 发送固件。
+当前只有一份外部候选镜像，尚无回滚和安装后健康确认。传输阶段已有 AT24C02 检查点续传，会话号仍保存在 RAM。续传要求 APP 能正常运行并接收 START；EEPROM 是单份原地覆盖的带 CRC 记录，更新时掉电可能使记录失效，不能保证每次掉电都保留断点。若内部 APP 安装中断且 Bootloader 驻留，当前 CAN 接收在 APP 中，需通过调试器或外部 W25 写入方式恢复，不能依赖本工具向驻留 Bootloader 发送固件。
 
-本次没有执行真实 CAN 传输、开发板烧录或 W25 擦写。已通过 Windows GCC 的协议核心测试、960 KiB 最大镜像模拟传输、离线命令行预检及 STM32 ARMCC5 构建；当前主机没有 Linux 编译环境，因此 **`socketcan_transport.c` 尚未经过 Linux/ARM 工具链编译和板端运行验证**。
+2026-10-06 本次通过 Windows GCC 的 `-std=c99 -Wall -Wextra -Werror` 主机测试与离线预检。测试直接调用真实 APP 接收函数和 Bootloader CRC，覆盖 18 个正常/故障场景、960 KiB 最大镜像、传输间隔中断与模拟接收端重启、全长断点换会话、8 种记录边界、EEPROM 写入失败和尾部损坏。模拟恢复后核对正文、CRC、READY，并确认没有重复擦除；三秒任务超时在测试中通过设置 IDLE 模拟，没有执行真实 FreeRTOS 任务循环。
+
+本次未执行 Linux/ARM SDK 编译、STM32 全工程构建、真实 CAN 传输、开发板烧录或硬件断电测试。协议模拟通过不能代替这些验证；`socketcan_transport.c` 本轮未改动，仍需在你的 Ubuntu SDK 与 i.MX6ULL 上验证。此前 STM32 构建记录不代表当前包含 AT24C02 改动的源码已构建成功。
+
+建议先确认完整重新编译成功，再上板传至超过一个 4 KiB 检查点后停止进程，等待超时并重新运行；之后分别验证 STM32 复位、正文收齐但未提交时复位、EEPROM 不可用三种情况。发送端 READY 后仍须观察 Bootloader 安装和新 APP 日志。
 
 2026-10-04 根据当前 SDK 环境恢复为 Makefile，并移除 CMake 配置与交叉工具链目录。正式构建沿用完整的 `$CC`；主机测试与离线程序通过独立的 `HOSTCC` 构建。真实 SDK 交叉编译及板端运行仍需在你的 Ubuntu 开发机和 i.MX6ULL 上验证。
 

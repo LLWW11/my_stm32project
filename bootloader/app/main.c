@@ -5,7 +5,7 @@
 #include "boot_update.h"
 
 #ifdef BOOT_W25_WRITER_MODE
-/** 临时烧写模式使用 SysTick 轮询等待五秒，并每秒输出剩余时间。 */
+/** 临时烧写模式使用 SysTick 轮询等待五秒，并每秒输出剩余时间 */
 static void boot_writer_wait_five_seconds(void)
 {
     uint32_t second;
@@ -42,8 +42,7 @@ static void boot_writer_wait_five_seconds(void)
 typedef void (*boot_app_entry_t)(void);
 
 // APP 向量表合法时返回 true
-static bool boot_app_is_valid(uint32_t *app_msp,
-                              uint32_t *app_reset_handler)
+static bool boot_app_is_valid(uint32_t *app_msp, uint32_t *app_reset_handler)
 {
     uint32_t reset_code_address;
 
@@ -76,8 +75,7 @@ static bool boot_app_is_valid(uint32_t *app_msp,
 }
 
 // 切换到 APP 的主栈并跳转到 APP 复位入口
-__asm void boot_start_app(uint32_t app_msp,
-                          uint32_t app_reset_handler)
+__asm void boot_start_app(uint32_t app_msp, uint32_t app_reset_handler)
 {
     MSR MSP, R0
     CPSIE I
@@ -85,16 +83,15 @@ __asm void boot_start_app(uint32_t app_msp,
 }
 
 // 清理 Bootloader运行状态并跳转到 APP
-static void boot_jump_to_app(uint32_t app_msp,
-                             uint32_t app_reset_handler)
+static void boot_jump_to_app(uint32_t app_msp,uint32_t app_reset_handler)
 {
     uint32_t index;
 
     USART_Cmd(USART1, DISABLE); // 关闭UART1
 #ifndef BOOT_W25_WRITER_MODE
-    SPI_Cmd(SPI3, DISABLE);     // 正常模式曾初始化 SPI3，跳转前将其关闭。
+    SPI_Cmd(SPI3, DISABLE); // 正常模式曾初始化 SPI3，跳转前将其关闭
 #endif
-    __disable_irq();            // 关闭中断
+    __disable_irq(); // 关闭中断
     // 关闭并复位 SysTick 和 PendSV
     SysTick->CTRL = 0U;
     SysTick->LOAD = 0U;
@@ -137,7 +134,7 @@ int main(void)
     boot_uart1_send_string("\r\n[BOOT] Bootloader start\r\n");
 
 #ifdef BOOT_W25_WRITER_MODE
-    // 临时模式只打印并跳转，不读取或擦写 W25Q128 与内部 APP。
+    // 临时模式只打印并跳转，不读取或擦写 W25Q128 与内部 APP
     boot_writer_wait_five_seconds();
 #else
     update_result = boot_update_install_pending();
@@ -146,9 +143,9 @@ int main(void)
     if (update_result == BOOT_UPDATE_FAILED)
     {
         boot_uart1_send_string("[BOOT] Restore W25 image and reset\r\n");
-        while (1);
-            // 安装失败后保留现场，由外部写入镜像并复位重试
-
+        while (1)
+            ;
+        // 安装失败后保留现场，由外部写入镜像并复位重试
     }
 #endif
 
@@ -172,6 +169,7 @@ int main(void)
     boot_uart1_send_string("[BOOT] Stay in bootloader\r\n");
     boot_uart1_send_string("[BOOT] Restore W25 image and reset\r\n");
 
-    while (1);
-        // APP 无效时驻留，由外部写入镜像并复位重试
+    while (1)
+        ;
+    // APP 无效时驻留，由外部写入镜像并复位重试
 }

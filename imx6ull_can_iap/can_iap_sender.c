@@ -86,7 +86,8 @@ static const char *error_name(uint8_t code)
 /* 等待结果：1 确认，0 超时，-1 链路或回复格式异常，-2 接收端明确拒绝，2 请求重传。 */
 /** 在固定截止时间内筛选会话、阶段和进度；迟到回复不能延长等待。 */
 static int wait_reply(iap_link_t *link, uint16_t request, uint8_t session,
-                      uint32_t offset, uint32_t next, unsigned timeout_ms, FILE *log)
+                      uint32_t offset, uint32_t next, unsigned timeout_ms, FILE *log,
+                      uint32_t *start_offset)
 {
     uint64_t deadline = link->now_ms(link->context) + timeout_ms;
     for (;;) {
@@ -105,7 +106,7 @@ static int wait_reply(iap_link_t *link, uint16_t request, uint8_t session,
             if (log) fprintf(log, "Untagged ACK: flash the matching STM32 APP first\n");
             return -1;
         }
-        if (request != IAP_START_ID && reply.data[1] != session) continue;
+        if (reply.data[1] != session) continue;
         if (reply.data[6] == 0 && reply.data[0] == 1 && reply.data[5] == 7) {
             if (log) fprintf(log, "Receiver aborted on inter-frame TIMEOUT\n");
             return -2;
@@ -113,6 +114,11 @@ static int wait_reply(iap_link_t *link, uint16_t request, uint8_t session,
         if (reply.data[6] != (uint8_t)request) continue;
         progress = get_u24(reply.data + 2);
         if (reply.data[0] == 0 && reply.data[5] == 0) {
+            /* START 的 next 为 BIN 长度，允许未对齐断点，以接收端记录为准。 */
+            if (request == IAP_START_ID && start_offset && progress <= next) {
+                *start_offset = progress;
+                return 1;
+            }
             if (progress == next) return 1;
             if (request == IAP_DATA_ID && progress <= offset) continue;
             if (log) fprintf(log, "Unexpected ACK offset %lu, expected %lu\n",
@@ -132,7 +138,7 @@ static int wait_reply(iap_link_t *link, uint16_t request, uint8_t session,
     }
 }
 
-/** 执行一次 START、逐帧停等 DATA 和一次 END，防止自动重启破坏性会话。 */
+/** START 获取接收端断点，逐帧续传 DATA，再执行一次 END 提交。 */
 iap_result_t iap_transfer(iap_link_t *link, const uint8_t *image,
                           size_t length, const iap_options_t *options)
 {
@@ -154,19 +160,28 @@ iap_result_t iap_transfer(iap_link_t *link, const uint8_t *image,
     put_u32(frame.data, (uint32_t)length);
     put_u32(frame.data + 4, crc);
     if (options->log) fprintf(options->log, "START len=%lu CRC32=0x%08lX; "
-                             "waiting for erase (up to %u ms)\n",
+                             "waiting for resume offset or erase (up to %u ms)\n",
                              (unsigned long)length, (unsigned long)crc,
                              options->start_timeout_ms);
     /* START 不重发：擦除过程中重发可能排队并导致再次擦除。 */
     if (link->send(link->context, &frame) != 0) return IAP_TRANSFER_FAILED;
-    reply = wait_reply(link, IAP_START_ID, 0, 0, 0,
-                       options->start_timeout_ms, options->log);
+    offset = 0;
+    reply = wait_reply(link, IAP_START_ID, 0, 0, (uint32_t)length,
+                       options->start_timeout_ms, options->log, &offset);
     if (reply != 1) {
         if (options->log) fprintf(options->log, "START not confirmed; no DATA sent\n");
         return IAP_TRANSFER_FAILED;
     }
+    if (options->log) fprintf(options->log, "%s offset=%lu/%lu (%.1f%%)\n",
+                             offset ? "RESUME" : "NEW transfer",
+                             (unsigned long)offset, (unsigned long)length,
+                             100.0 * offset / length);
+    report_at = (offset / 65536U + 1U) * 65536U;
 
-    for (offset = 0; offset < length;) {
+    /* 收齐正文后断电：重发末尾分片绑定新会话，接收端只确认而不改写。 */
+    if (offset == length) offset = (uint32_t)length - 1U;
+
+    for (; offset < length;) {
         unsigned count = (unsigned)(length - offset);
         unsigned attempt;
         if (count > 4) count = 4;
@@ -178,16 +193,24 @@ iap_result_t iap_transfer(iap_link_t *link, const uint8_t *image,
         frame.data[3] = (uint8_t)(offset >> 16);
         memcpy(frame.data + 4, image + offset, count);
         for (attempt = 0; attempt <= options->data_retries; ++attempt) {
-            if (link->send(link->context, &frame) != 0) return IAP_TRANSFER_FAILED;
+            if (link->send(link->context, &frame) != 0) {
+                reply = -1;
+                break;
+            }
             reply = wait_reply(link, IAP_DATA_ID, options->session, offset,
-                               offset + count, options->data_timeout_ms, options->log);
+                               offset + count, options->data_timeout_ms, options->log, NULL);
             if (reply == 1 || reply < 0) break;
             if (options->log && attempt < options->data_retries)
                 fprintf(options->log, "DATA retry at %lu (%u/%u)\n",
                                      (unsigned long)offset, attempt + 1,
                                      options->data_retries);
         }
-        if (reply != 1) return IAP_TRANSFER_FAILED;
+        if (reply != 1) {
+            if (options->log) fprintf(options->log, "DATA stopped at %lu; restore link, "
+                                     "wait for receiver IDLE (at least 3 s), then rerun "
+                                     "with the same BIN to resume\n", (unsigned long)offset);
+            return IAP_TRANSFER_FAILED;
+        }
         offset += count;
         if (offset >= report_at || offset == length) {
             if (options->log) fprintf(options->log, "DATA %lu/%lu (%.1f%%)\n",
@@ -204,7 +227,7 @@ iap_result_t iap_transfer(iap_link_t *link, const uint8_t *image,
     if (options->log) fprintf(options->log, "END: waiting for readback CRC and READY\n");
     if (link->send(link->context, &frame) != 0) return IAP_TRANSFER_UNCERTAIN;
     reply = wait_reply(link, IAP_END_ID, options->session, offset, offset,
-                       options->end_timeout_ms, options->log);
+                       options->end_timeout_ms, options->log, NULL);
     if (reply == 1) {
         if (options->log) fprintf(options->log, "Image READY; verify BOOT Internal CRC "
                                  "PASS, Install PASS and the new APP on serial console\n");

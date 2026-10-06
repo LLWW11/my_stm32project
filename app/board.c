@@ -13,6 +13,7 @@
 #include "usart.h"
 #include "25q128/25q128.h"
 #include "w25q128_test.h"
+#include "dbg_config.h"
 static struct led_desc led0 = {GPIOF, GPIO_Pin_9, Bit_RESET, Bit_SET};
 static struct led_desc led1 = {GPIOF, GPIO_Pin_10, Bit_RESET, Bit_SET};
 
@@ -79,11 +80,10 @@ void board_Init(void)
     led_init_PWM();
     // TFT_init(); //放在UI初始化哪里了
     AHT20_Init();
-    // 这句话还是要的
+
     printf("[SYS] Build Date:%s %s\r\n", __DATE__, __TIME__);
 
-    // IAP 测试
-    printf("\r\n\r\n===========[SYS] OTA test version: v2===========\r\n\r\n");
-
+    // IAP 测试，这个编译后的bin已经放到虚拟机以及开发板中
+    // printf("[Test] Bin file dedicated to IAP test, build bate:%s %s\r\n", __DATE__, __TIME__);
     // printf("\r\n\r\n===========[SYS] 2026-10-04 CAN IAP test version: V3===========\r\n\r\n");
 }

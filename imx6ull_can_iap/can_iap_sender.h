@@ -51,7 +51,7 @@ uint32_t iap_crc32(const uint8_t *data, size_t length);
 int iap_validate_image(const uint8_t *image, size_t length, FILE *log);
 /** 设置长 START 超时、逐帧 DATA 重传和一次 END 提交的默认参数。 */
 void iap_options_default(iap_options_t *options);
-/** 顺序发送镜像；只对 DATA 自动重传，成功返回仅表示接收端 READY。 */
+/** 按 START 回复断点续传镜像；只对 DATA 自动重传，成功仅表示接收端 READY。 */
 iap_result_t iap_transfer(iap_link_t *link, const uint8_t *image,
                           size_t length, const iap_options_t *options);
 /** 打开 Linux CAN_RAW 套接字并建立回复过滤器，不修改接口位速率。 */

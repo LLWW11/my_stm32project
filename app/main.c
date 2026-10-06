@@ -44,8 +44,6 @@ static void lvgl_task(void *pvParameter)
 }
 #endif
 
-
-/** 初始化设备与界面，创建 CAN 升级及业务任务后退出  */
 static void main_init(void *param)
 {
     board_Init();

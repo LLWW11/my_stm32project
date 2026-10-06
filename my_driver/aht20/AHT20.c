@@ -35,7 +35,7 @@ bool AHT20_Init(void)
     IIC2_Init();
     vTaskDelay(pdMS_TO_TICKS(40));
     if (aht20_is_ready())
-        return true;
+            return true;
 
     if (!AHT20_write((uint8_t[]){0xBE, 0x08, 0x00}, 3))
         return false;

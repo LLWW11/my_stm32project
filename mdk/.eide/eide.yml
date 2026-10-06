@@ -73,6 +73,7 @@ virtualFolder:
           files:
             - path: ../bootloader/app/boot_crc.c
             - path: ../bootloader/app/boot_crc.h
+            - path: ../bootloader/app/boot_Image_desc.h
           folders: []
     - name: my_driver
       files: []
@@ -130,6 +131,11 @@ virtualFolder:
           files:
             - path: ../my_driver/can_iap/can_iap.h
             - path: ../my_driver/can_iap/can_iap.c
+          folders: []
+        - name: at24c02
+          files:
+            - path: ../my_driver/at24c02/at24c02.c
+            - path: ../my_driver/at24c02/at24c02.h
           folders: []
     - name: firmware
       files: []
@@ -590,6 +596,7 @@ targets:
         - ../third_lib/lvgl/src
         - ../my_driver/can_iap
         - ../bootloader/app
+        - ../my_driver/at24c02
       libList:
         - ../third_lib/lvgl
     excludeList:

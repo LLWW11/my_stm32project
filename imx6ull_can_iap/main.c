@@ -11,10 +11,12 @@ static void usage(const char *program)
     fprintf(stderr, "Usage: %s --interface can0 --file app.bin [options]\n"
             "  --dry-run                 validate BIN and CRC; never open CAN\n"
             "  --session 1..255          default: random per invocation\n"
-            "  --start-timeout-ms N      default: 180000 (erase entire W25 image)\n"
+            "  --start-timeout-ms N      default: 180000 (resume lookup or W25 erase)\n"
             "  --data-timeout-ms 1..1000 default: 500 (receiver gap: 3000 ms)\n"
             "  --end-timeout-ms N        default: 30000 (readback CRC + READY)\n"
             "  --retries 0..10           default: 3; DATA only\n"
+            "Resume: rerun with the same BIN after receiver IDLE (at least 3 s);\n"
+            "        START chooses offset; no local checkpoint is required\n"
             "Exit: 0 READY/dry-run OK, 1 failed, 2 END outcome unconfirmed\n", program);
 }
 
