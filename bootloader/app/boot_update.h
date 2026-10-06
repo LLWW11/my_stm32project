@@ -2,7 +2,7 @@
 #define WEATHERCLOCK_BOOT_UPDATE_H
 
 
-#include "boot_Image_desc.h" /* 镜像头只保留一份定义，避免与安装实现重复声明。 */
+#include "boot_Image_desc.h" /* 镜像头只保留一份定义，避免与安装实现重复声明 */
 
 //  v1.2.3 = 0x00010203
 #define BOOT_VERSION_ENCODE(major, minor, patch) \

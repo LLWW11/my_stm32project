@@ -7,7 +7,7 @@ Key_Dev_t KeyList[] = {
     {KEY_PORT, KEY2, 0, 0, 0, 0}  // KEY2
 };
 
-#define KEY_NUM (sizeof(KeyList) / sizeof(KeyList[0]))
+#define KEY_NUM        (sizeof(KeyList) / sizeof(KeyList[0]))
 #define DEBOUNCE_TICKS 8 // 检测8次
 
 void key_Init()

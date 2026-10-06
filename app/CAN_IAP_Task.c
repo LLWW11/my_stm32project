@@ -483,6 +483,7 @@ void can_iap_task(void *argument)
         {
             iap_reply(IAP_ACK, ctx.session, ctx.expected, IAP_ERR_OK, (uint8_t)rx.StdId);
             vTaskDelay(pdMS_TO_TICKS(500));
+            
             NVIC_SystemReset();
         }
         // 没有成功
