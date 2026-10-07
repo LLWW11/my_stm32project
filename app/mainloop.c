@@ -372,7 +372,7 @@ void main_loop_Init(void)
                                      (void *)MLOOP_EVENT_TIME_UPDATE,
                                      mloop_timer_callback);
 #endif
-    configASSERT(xTaskCreate(mloop_func, "mloop", 4096, NULL, 6, &mloop_task) == pdPASS);
+    configASSERT(xTaskCreate(mloop_func, "mloop", 4096, NULL, 8, &mloop_task) == pdPASS);
     xTaskNotify(mloop_task, MLOOP_EVENT_ALL, eSetBits);
 
     xTimerStart(wifi_update_timer, 0);

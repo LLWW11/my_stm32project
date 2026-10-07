@@ -77,7 +77,7 @@ int main()
     configASSERT(xTaskCreate(can_test_task, "can_test", 512, NULL, 7, NULL) == pdPASS);
     vTaskDelete(NULL); // 仅用于 CAN 联调
 #else
-    configASSERT(xTaskCreate(can_iap_task, "can_iap", 2048, NULL, 5, NULL) == pdPASS);
+    configASSERT(xTaskCreate(can_iap_task, "can_iap", 2048, NULL, 7, NULL) == pdPASS);
 #endif
 #if ENABLE_W25Q128_ID_TEST
     w25q128_self_test(); // w25q128测试用

@@ -408,6 +408,29 @@ static iap_err_t iap_handle_end(const uint8_t *d, uint8_t dlc, iap_ctx_t *ctx)
     return IAP_ERR_OK;
 }
 
+static bool iap_can_init_with_retry(uint8_t max_try)
+{
+    for (uint8_t i = 0; i < max_try; ++i)
+    {
+        if (can_test_init(false))
+            return true;
+        printf("[IAP] CAN init failed, retry %u/%u\r\n",
+               (unsigned)(i + 1), (unsigned)max_try);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    return false;
+}
+static bool iap_W25Q_init_with_retry(uint8_t max_try)
+{
+    for (uint8_t i = 0; i < max_try; ++i)
+    {
+        if ((W25Q_ReadId(&id) != W25Q_OK) || (id != W25Q128_JEDEC_ID))
+            return true;
+        printf("[IAP] W25 check FAIL, retry %u/%u\r\\n", (unsigned)(i + 1), (unsigned)max_try);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    return false;
+}
 // 消费CAN中断接收队列，执行 START/DATA/END
 void can_iap_task(void *argument)
 {
@@ -419,30 +442,25 @@ void can_iap_task(void *argument)
 
     (void)argument;
 
-    if (!can_test_init(false))
+    if (!iap_can_init_with_retry(5))
     {
-        printf("[IAP] CAN init failed\r\n");
+        printf("[IAP] CAN init failed 5 times, IAP task delete\r\n");
         vTaskDelete(NULL);
     }
 
-    if ((W25Q_ReadId(&id) != W25Q_OK) || (id != W25Q128_JEDEC_ID))
+    if (!iap_W25Q_init_with_retry(5))
     {
-        printf("[IAP] W25 check FAIL\r\n");
+        printf("[IAP] W25Q init failed 5 times, IAP task delete\r\n");
         vTaskDelete(NULL);
         return;
     }
-    else
-        printf("[IAP] task ready, W25 OK\r\n");
+
+    printf("[IAP] task ready, W25 OK\r\n");
 
     s_iap_resume_ok = (AT24C02_Init() == AT24C02_OK);
     printf("[IAP] AT24C02 %s, resume %s\r\n",
            s_iap_resume_ok ? "OK" : "missing",
            s_iap_resume_ok ? "enabled" : "disabled");
-    if (!s_iap_resume_ok)
-        printf("[IAP] dbg BUSY=%d SCL(PB8)=%d SDA(PB9)=%d\r\n",
-               (int)I2C_GetFlagStatus(I2C1, I2C_FLAG_BUSY),
-               (int)GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_8),
-               (int)GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_9));
 
     while (1)
     {
@@ -483,7 +501,7 @@ void can_iap_task(void *argument)
         {
             iap_reply(IAP_ACK, ctx.session, ctx.expected, IAP_ERR_OK, (uint8_t)rx.StdId);
             vTaskDelay(pdMS_TO_TICKS(500));
-            
+
             NVIC_SystemReset();
         }
         // 没有成功
